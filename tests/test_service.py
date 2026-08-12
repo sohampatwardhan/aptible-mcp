@@ -455,6 +455,61 @@ class TestServiceManager:
         )
 
     @pytest.mark.asyncio
+    async def test_get_settings_returns_present_fields(
+        self, service_manager, sample_service_data
+    ):
+        """
+        get_settings returns only the allow-listed fields actually present
+        on the fetched Service resource.
+        """
+        service_data = {
+            **sample_service_data,
+            "force_zero_downtime": True,
+            "stop_timeout": 30,
+        }
+        service_manager.get_by_id = AsyncMock(
+            return_value=Service.model_validate(service_data)
+        )
+
+        settings = await service_manager.get_settings(123)
+
+        assert settings == {"force_zero_downtime": True, "stop_timeout": 30}
+        service_manager.get_by_id.assert_called_once_with(123)
+
+    @pytest.mark.asyncio
+    async def test_get_settings_service_not_found(self, service_manager):
+        service_manager.get_by_id = AsyncMock(return_value=None)
+
+        with pytest.raises(Exception) as excinfo:
+            await service_manager.get_settings(999)
+
+        assert "Service 999 not found" in str(excinfo.value)
+
+    @pytest.mark.asyncio
+    async def test_update_settings_success(
+        self, service_manager, mock_api_client, sample_service_data
+    ):
+        updated_data = {**sample_service_data, "naive_health_check": True}
+        mock_api_client.put.return_value = updated_data
+
+        result = await service_manager.update_settings(123, naive_health_check=True)
+
+        mock_api_client.put.assert_called_once_with(
+            "/services/123", {"naive_health_check": True}
+        )
+        assert isinstance(result, Service)
+
+    @pytest.mark.asyncio
+    async def test_update_settings_rejects_unsupported_key(
+        self, service_manager, mock_api_client
+    ):
+        with pytest.raises(ValueError) as excinfo:
+            await service_manager.update_settings(123, bogus_setting=True)
+
+        assert "bogus_setting" in str(excinfo.value)
+        mock_api_client.put.assert_not_called()
+
+    @pytest.mark.asyncio
     async def test_delete_service_not_found(self, service_manager):
         """
         Test delete raises an exception when service is not found.

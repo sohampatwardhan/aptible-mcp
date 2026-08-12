@@ -1,0 +1,29 @@
+{
+  "diagram": "graph",
+  "target": "flowchart",
+  "direction": "TD",
+  "groups": [
+    { "id": "tools", "label": "MCP tool layer (main.py)" },
+    { "id": "managers", "label": "Resource managers (models/)" },
+    { "id": "shared", "label": "Shared operation infrastructure" },
+    { "id": "client", "label": "HTTP client" }
+  ],
+  "nodes": [
+    { "id": "tool_fns", "label": "~25 new tool functions: restoreDatabaseFromBackup, createCustomDomainEndpoint, deployApp, cancelOperation, ...", "kind": "process", "group": "tools" },
+    { "id": "new_managers", "label": "New: Backup, LogDrain, MetricDrain, Certificate, Maintenance managers", "kind": "process", "group": "managers" },
+    { "id": "extended_managers", "label": "Extended: App, Database, Service, Vhost, Account, Operation managers", "kind": "process", "group": "managers" },
+    { "id": "run_operation", "label": "ResourceManager._run_operation() (new shared helper): POST .../operations, wait, refetch", "kind": "subprocess", "group": "shared" },
+    { "id": "wait_for_operation", "label": "AptibleApiClient.wait_for_operation() (existing, reused)", "kind": "subprocess", "group": "shared" },
+    { "id": "api_client", "label": "AptibleApiClient (existing, unchanged): get/post/put/delete", "kind": "io", "group": "client" },
+    { "id": "aptible_api", "label": "api.aptible.com (Aptible Deploy API)", "kind": "store" }
+  ],
+  "edges": [
+    { "from": "tool_fns", "to": "new_managers", "kind": "normal" },
+    { "from": "tool_fns", "to": "extended_managers", "kind": "normal" },
+    { "from": "new_managers", "to": "run_operation", "kind": "normal" },
+    { "from": "extended_managers", "to": "run_operation", "kind": "normal" },
+    { "from": "run_operation", "to": "wait_for_operation", "kind": "normal" },
+    { "from": "run_operation", "to": "api_client", "kind": "normal" },
+    { "from": "api_client", "to": "aptible_api", "kind": "normal" }
+  ]
+}

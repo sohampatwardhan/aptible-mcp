@@ -1,0 +1,26 @@
+{
+  "diagram": "graph",
+  "target": "block",
+  "columns": 3,
+  "groups": [
+    { "id": "in_scope", "label": "In scope: Deploy API parity (this spec)" },
+    { "id": "future_spec", "label": "Out of scope: separate future spec" },
+    { "id": "non_goal", "label": "Non-goals: not addressed by any MCP tool" }
+  ],
+  "nodes": [
+    { "id": "apps", "label": "Apps: rename, settings, deploy, rebuild, restart", "kind": "process", "group": "in_scope" },
+    { "id": "databases", "label": "Databases: replicate, clone, dump, execute, rename, restart", "kind": "process", "group": "in_scope" },
+    { "id": "backups", "label": "Backups: list, restore, orphaned, purge", "kind": "store", "group": "in_scope" },
+    { "id": "endpoints", "label": "Endpoints: custom domains, managed/custom TLS, TCP/TLS/gRPC/database endpoints", "kind": "process", "group": "in_scope" },
+    { "id": "drains", "label": "Log drains and metric drains: create, list, deprovision", "kind": "process", "group": "in_scope" },
+    { "id": "services_ops", "label": "Services and operations: settings, cancel, one-off run", "kind": "process", "group": "in_scope" },
+    { "id": "environments", "label": "Environments and stacks: rename, CA cert", "kind": "process", "group": "in_scope" },
+    { "id": "maintenance", "label": "Maintenance apps/DBs and container recovery", "kind": "process", "group": "in_scope" },
+    { "id": "auth_api", "label": "Auth API: organizations, users, roles, permissions", "kind": "process", "group": "future_spec" },
+    { "id": "sso_mfa", "label": "SSO, SCIM, MFA/U2F, token management", "kind": "process", "group": "future_spec" },
+    { "id": "billing", "label": "Billing: plans, invoices, payment methods", "kind": "terminator", "group": "non_goal" },
+    { "id": "compliance_ui", "label": "Compliance readiness score dashboard", "kind": "terminator", "group": "non_goal" },
+    { "id": "interactive", "label": "Interactive SSH shells, DB tunnels, live log streaming", "kind": "terminator", "group": "non_goal" }
+  ],
+  "edges": []
+}

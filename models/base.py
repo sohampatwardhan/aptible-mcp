@@ -84,3 +84,26 @@ class ResourceManager(Generic[T, ID]):
         Delete a resource by ID.
         """
         self.api_client.delete(f"{self.resource_url}/{resource_id}")
+
+    async def _run_operation(
+        self,
+        resource_id: int,
+        operations_path: str,
+        operation_type: str,
+        extra: Optional[Dict[str, Any]] = None,
+        refetch: bool = True,
+    ) -> Optional[T]:
+        """
+        Generalizes the operation-trigger-and-wait pattern hand-written per-method
+        elsewhere (e.g. Service.scale, App.deploy): POST an operation, wait for it
+        to reach a terminal state, then optionally refetch the resource it acted on.
+
+        Actions that produce a *different* resource than the one they're called on
+        (e.g. backup restore, database clone) should not use this — call
+        api_client.post + wait_for_operation directly and let the caller compose
+        with the target manager instead.
+        """
+        operation_data: Dict[str, Any] = {"type": operation_type, **(extra or {})}
+        response = self.api_client.post(operations_path, operation_data)
+        self.api_client.wait_for_operation(response["id"])
+        return await self.get_by_id(resource_id) if refetch else None

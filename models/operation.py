@@ -17,6 +17,10 @@ class Operation(ResourceBase):
         ..., description="Type of the resource the operation was run against."
     )
     type: str = Field(..., description="The type of operation run.")
+    status: str = Field(..., description="Current status of the operation.")
+    cancelled: bool = Field(
+        False, description="Whether the operation has been cancelled."
+    )
 
 
 class OperationManager(ResourceManager[Operation, str]):
@@ -85,6 +89,26 @@ class OperationManager(ResourceManager[Operation, str]):
             }
             for op in operations
         ]
+
+    async def cancel(self, operation_id: int) -> Operation:
+        """
+        Cancel a running operation. Cancellation is a PUT with
+        cancelled: true against the operation itself, not a DELETE or a
+        sub-resource. An operation already in a terminal state (succeeded
+        or failed) can't be cancelled; this raises before making that call.
+        """
+        operation = await self.get_by_id(operation_id)
+        if not operation:
+            raise Exception(f"Operation {operation_id} not found")
+        if operation.status in ("succeeded", "failed"):
+            raise Exception(
+                f"Operation {operation_id} is already {operation.status} and cannot be cancelled"
+            )
+
+        response = self.api_client.put(
+            f"/operations/{operation_id}", {"cancelled": True}
+        )
+        return self.resource_model.model_validate(response)
 
     async def get_operations_for_vhost(self, vhost_id: int) -> List[Dict[str, Any]]:
         """

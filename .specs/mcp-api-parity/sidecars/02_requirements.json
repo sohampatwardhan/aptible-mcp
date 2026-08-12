@@ -1,0 +1,805 @@
+{
+  "schema_version": 1,
+  "generated_from": {
+    "file": "02_requirements.md",
+    "sha256": "5330139877e6720d62830eb2d07dc6b8a4f788a7192199f1343ce8c7d4165b75"
+  },
+  "requirements": [
+    {
+      "id": "1",
+      "user_story": {
+        "role": "agent operating a database",
+        "capability": "to list its available backups",
+        "benefit": "I can choose one to restore or evaluate backup coverage"
+      },
+      "criteria": [
+        {
+          "id": "1.1",
+          "kind": "event",
+          "trigger": "a caller requests backups for a database handle",
+          "actor": "Backup_Manager",
+          "behavior": "return the list of backups for that database, each including its identifier and creation timestamp"
+        },
+        {
+          "id": "1.2",
+          "kind": "event",
+          "trigger": "a caller requests backups with a maximum age filter",
+          "actor": "Backup_Manager",
+          "behavior": "exclude backups older than that age from the returned list"
+        },
+        {
+          "id": "1.3",
+          "kind": "unwanted",
+          "trigger": "the specified database handle does not exist",
+          "actor": "Backup_Manager",
+          "behavior": "raise an error naming the handle instead of returning an empty list"
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "user_story": {
+        "role": "agent recovering from a bad deploy or data issue",
+        "capability": "to restore a database from a specific backup",
+        "benefit": "the database's data returns to a known-good point in time"
+      },
+      "criteria": [
+        {
+          "id": "2.1",
+          "kind": "event",
+          "trigger": "a caller requests a restore for a valid backup identifier",
+          "actor": "Backup_Manager",
+          "behavior": "start a restore operation and return the resulting new database resource once the operation succeeds"
+        },
+        {
+          "id": "2.2",
+          "kind": "unwanted",
+          "trigger": "the restore operation fails",
+          "actor": "Backup_Manager",
+          "behavior": "raise an error including the operation's failure message"
+        },
+        {
+          "id": "2.3",
+          "kind": "unwanted",
+          "trigger": "the specified backup identifier does not exist",
+          "actor": "Backup_Manager",
+          "behavior": "raise an error naming the identifier instead of starting an operation"
+        }
+      ]
+    },
+    {
+      "id": "3",
+      "user_story": {
+        "role": "agent managing storage costs",
+        "capability": "to find and purge orphaned backups (backups whose source database no longer exists)",
+        "benefit": "unused backups don't accumulate"
+      },
+      "criteria": [
+        {
+          "id": "3.1",
+          "kind": "event",
+          "trigger": "a caller requests orphaned backups for an environment",
+          "actor": "Backup_Manager",
+          "behavior": "return the list of backups in that environment whose source database has been deleted"
+        },
+        {
+          "id": "3.2",
+          "kind": "event",
+          "trigger": "a caller requests a purge for a specific backup identifier",
+          "actor": "Backup_Manager",
+          "behavior": "delete that backup and return confirmation"
+        },
+        {
+          "id": "3.3",
+          "kind": "unwanted",
+          "trigger": "the specified backup identifier does not exist",
+          "actor": "Backup_Manager",
+          "behavior": "raise an error naming the identifier"
+        }
+      ]
+    },
+    {
+      "id": "4",
+      "user_story": {
+        "role": "agent setting up observability",
+        "capability": "to create, list, and remove log drains for an environment",
+        "benefit": "application logs reach an external log store (e.g. Datadog, Papertrail, syslog)"
+      },
+      "criteria": [
+        {
+          "id": "4.1",
+          "kind": "event",
+          "trigger": "a caller creates a log drain with a valid destination type and connection details",
+          "actor": "Log_Drain_Manager",
+          "behavior": "provision the drain and return the resulting resource, including its identifier and status"
+        },
+        {
+          "id": "4.2",
+          "kind": "event",
+          "trigger": "a caller lists log drains for an environment",
+          "actor": "Log_Drain_Manager",
+          "behavior": "return every log drain provisioned in that environment"
+        },
+        {
+          "id": "4.3",
+          "kind": "event",
+          "trigger": "a caller deprovisions a log drain by identifier",
+          "actor": "Log_Drain_Manager",
+          "behavior": "remove it and return confirmation"
+        },
+        {
+          "id": "4.4",
+          "kind": "unwanted",
+          "trigger": "a log drain create request specifies an unsupported destination type",
+          "actor": "Log_Drain_Manager",
+          "behavior": "raise an error naming the unsupported type instead of attempting provisioning"
+        },
+        {
+          "id": "4.5",
+          "kind": "unwanted",
+          "trigger": "the specified log drain identifier does not exist on deprovision",
+          "actor": "Log_Drain_Manager",
+          "behavior": "raise an error naming the identifier"
+        }
+      ]
+    },
+    {
+      "id": "5",
+      "user_story": {
+        "role": "agent setting up observability",
+        "capability": "to create, list, and remove metric drains for an environment",
+        "benefit": "container metrics reach an external monitoring service (e.g. Datadog, InfluxDB)"
+      },
+      "criteria": [
+        {
+          "id": "5.1",
+          "kind": "event",
+          "trigger": "a caller creates a metric drain with a valid destination type and connection details",
+          "actor": "Metric_Drain_Manager",
+          "behavior": "provision the drain and return the resulting resource, including its identifier and status"
+        },
+        {
+          "id": "5.2",
+          "kind": "event",
+          "trigger": "a caller lists metric drains for an environment",
+          "actor": "Metric_Drain_Manager",
+          "behavior": "return every metric drain provisioned in that environment"
+        },
+        {
+          "id": "5.3",
+          "kind": "event",
+          "trigger": "a caller deprovisions a metric drain by identifier",
+          "actor": "Metric_Drain_Manager",
+          "behavior": "remove it and return confirmation"
+        },
+        {
+          "id": "5.4",
+          "kind": "unwanted",
+          "trigger": "a metric drain create request specifies an unsupported destination type",
+          "actor": "Metric_Drain_Manager",
+          "behavior": "raise an error naming the unsupported type instead of attempting provisioning"
+        },
+        {
+          "id": "5.5",
+          "kind": "unwanted",
+          "trigger": "the specified metric drain identifier does not exist on deprovision",
+          "actor": "Metric_Drain_Manager",
+          "behavior": "raise an error naming the identifier"
+        }
+      ]
+    },
+    {
+      "id": "6",
+      "user_story": {
+        "role": "agent exposing an app publicly",
+        "capability": "to create an endpoint bound to my own domain with Aptible-managed TLS",
+        "benefit": "traffic to my domain reaches the app over HTTPS without me sourcing a certificate myself"
+      },
+      "criteria": [
+        {
+          "id": "6.1",
+          "kind": "event",
+          "trigger": "a caller creates an endpoint for a service specifying a custom domain and requesting managed TLS",
+          "actor": "Vhost_Manager",
+          "behavior": "provision the endpoint and return the resulting resource, including any DNS validation records required to complete provisioning"
+        },
+        {
+          "id": "6.2",
+          "kind": "unwanted",
+          "trigger": "the specified service does not exist",
+          "actor": "Vhost_Manager",
+          "behavior": "raise an error naming the service instead of attempting provisioning"
+        },
+        {
+          "id": "6.3",
+          "kind": "unwanted",
+          "trigger": "the specified domain is an apex domain that Aptible's managed TLS does not support",
+          "actor": "Vhost_Manager",
+          "behavior": "raise an error explaining the restriction instead of attempting provisioning"
+        }
+      ]
+    },
+    {
+      "id": "7",
+      "user_story": {
+        "role": "agent exposing an app publicly with an existing certificate",
+        "capability": "to create an endpoint using a certificate I supply",
+        "benefit": "I retain control over my own TLS material"
+      },
+      "criteria": [
+        {
+          "id": "7.1",
+          "kind": "event",
+          "trigger": "a caller uploads a certificate and private key",
+          "actor": "Certificate_Manager",
+          "behavior": "store the certificate and return its identifier and fingerprint"
+        },
+        {
+          "id": "7.2",
+          "kind": "event",
+          "trigger": "a caller creates an endpoint referencing a stored certificate's fingerprint",
+          "actor": "Vhost_Manager",
+          "behavior": "provision the endpoint using that certificate"
+        },
+        {
+          "id": "7.3",
+          "kind": "event",
+          "trigger": "a caller lists certificates for the environment",
+          "actor": "Certificate_Manager",
+          "behavior": "return every stored certificate with its identifier and expiration date"
+        },
+        {
+          "id": "7.4",
+          "kind": "unwanted",
+          "trigger": "the supplied certificate and private key do not form a valid pair",
+          "actor": "Certificate_Manager",
+          "behavior": "raise an error instead of storing the certificate"
+        },
+        {
+          "id": "7.5",
+          "kind": "unwanted",
+          "trigger": "an endpoint create request references a certificate fingerprint that does not exist",
+          "actor": "Vhost_Manager",
+          "behavior": "raise an error naming the fingerprint instead of attempting provisioning"
+        }
+      ]
+    },
+    {
+      "id": "8",
+      "user_story": {
+        "role": "agent exposing a non-HTTP service",
+        "capability": "to create TCP, TLS, or gRPC endpoints (not just default HTTPS)",
+        "benefit": "I can expose services that don't speak HTTP/1.1"
+      },
+      "criteria": [
+        {
+          "id": "8.1",
+          "kind": "event",
+          "trigger": "a caller creates an endpoint specifying type TCP, TLS, or gRPC along with the container ports to expose",
+          "actor": "Vhost_Manager",
+          "behavior": "provision an endpoint of that type bound to those ports"
+        },
+        {
+          "id": "8.2",
+          "kind": "event",
+          "trigger": "a caller lists endpoints for a service",
+          "actor": "Vhost_Manager",
+          "behavior": "include each endpoint's type in the returned resource"
+        },
+        {
+          "id": "8.3",
+          "kind": "unwanted",
+          "trigger": "a TLS-type endpoint create request omits a certificate reference",
+          "actor": "Vhost_Manager",
+          "behavior": "raise an error instead of attempting provisioning"
+        }
+      ]
+    },
+    {
+      "id": "9",
+      "user_story": {
+        "role": "agent that needs external clients to reach a database directly",
+        "capability": "to create an endpoint that exposes a database (rather than an app service)",
+        "benefit": "authorized external clients can connect to it"
+      },
+      "criteria": [
+        {
+          "id": "9.1",
+          "kind": "event",
+          "trigger": "a caller creates a database endpoint for a valid database handle",
+          "actor": "Vhost_Manager",
+          "behavior": "provision the endpoint and return its resulting hostname and port"
+        },
+        {
+          "id": "9.2",
+          "kind": "unwanted",
+          "trigger": "the specified database handle does not exist",
+          "actor": "Vhost_Manager",
+          "behavior": "raise an error naming the handle instead of attempting provisioning"
+        }
+      ]
+    },
+    {
+      "id": "10",
+      "user_story": {
+        "role": "agent maintaining an existing endpoint",
+        "capability": "to modify its configuration or trigger a TLS renewal",
+        "benefit": "I don't have to delete and recreate the endpoint for routine changes"
+      },
+      "criteria": [
+        {
+          "id": "10.1",
+          "kind": "event",
+          "trigger": "a caller modifies an existing endpoint's supported settings (e.g. container ports, certificate reference)",
+          "actor": "Vhost_Manager",
+          "behavior": "apply the change and return the updated resource"
+        },
+        {
+          "id": "10.2",
+          "kind": "event",
+          "trigger": "a caller triggers a TLS renewal for a managed-TLS app endpoint",
+          "actor": "Vhost_Manager",
+          "behavior": "start the renewal operation and return its resulting status"
+        },
+        {
+          "id": "10.3",
+          "kind": "unwanted",
+          "trigger": "the specified endpoint identifier does not exist",
+          "actor": "Vhost_Manager",
+          "behavior": "raise an error naming the identifier instead of attempting the change"
+        }
+      ]
+    },
+    {
+      "id": "11",
+      "user_story": {
+        "role": "agent correcting or standardizing naming",
+        "capability": "to rename an app",
+        "benefit": "its handle reflects current naming conventions without recreating the app"
+      },
+      "criteria": [
+        {
+          "id": "11.1",
+          "kind": "event",
+          "trigger": "a caller renames an app to a new handle that is unique within its environment",
+          "actor": "App_Manager",
+          "behavior": "apply the new handle and return the updated resource"
+        },
+        {
+          "id": "11.2",
+          "kind": "unwanted",
+          "trigger": "the requested new handle is already in use within the same environment",
+          "actor": "App_Manager",
+          "behavior": "raise an error instead of applying the rename"
+        },
+        {
+          "id": "11.3",
+          "kind": "unwanted",
+          "trigger": "the specified app does not exist",
+          "actor": "App_Manager",
+          "behavior": "raise an error naming the app instead of attempting the rename"
+        }
+      ]
+    },
+    {
+      "id": "12",
+      "user_story": {
+        "role": "agent shipping a new version",
+        "capability": "to trigger a deploy of a new Docker image (or Git reference) to an app",
+        "benefit": "the app runs the new version without me leaving the session"
+      },
+      "criteria": [
+        {
+          "id": "12.1",
+          "kind": "event",
+          "trigger": "a caller triggers a deploy specifying a new Docker image reference",
+          "actor": "App_Manager",
+          "behavior": "start a deploy operation and return the resulting app resource once the operation succeeds"
+        },
+        {
+          "id": "12.2",
+          "kind": "unwanted",
+          "trigger": "the deploy operation fails",
+          "actor": "App_Manager",
+          "behavior": "raise an error including the operation's failure message"
+        },
+        {
+          "id": "12.3",
+          "kind": "unwanted",
+          "trigger": "the specified app does not exist",
+          "actor": "App_Manager",
+          "behavior": "raise an error naming the app instead of starting a deploy"
+        }
+      ]
+    },
+    {
+      "id": "13",
+      "user_story": {
+        "role": "agent responding to a base-image security patch",
+        "capability": "to trigger a rebuild of an app's current release",
+        "benefit": "the app picks up underlying image layer updates without a new deploy"
+      },
+      "criteria": [
+        {
+          "id": "13.1",
+          "kind": "event",
+          "trigger": "a caller triggers a rebuild for an app",
+          "actor": "App_Manager",
+          "behavior": "start a rebuild operation and return the resulting app resource once the operation succeeds"
+        },
+        {
+          "id": "13.2",
+          "kind": "unwanted",
+          "trigger": "the rebuild operation fails",
+          "actor": "App_Manager",
+          "behavior": "raise an error including the operation's failure message"
+        }
+      ]
+    },
+    {
+      "id": "14",
+      "user_story": {
+        "role": "agent recovering from a stuck or misbehaving app",
+        "capability": "to restart it",
+        "benefit": "its containers restart without a full deploy"
+      },
+      "criteria": [
+        {
+          "id": "14.1",
+          "kind": "event",
+          "trigger": "a caller triggers a restart for an app",
+          "actor": "App_Manager",
+          "behavior": "start a restart operation and return the resulting app resource once the operation succeeds"
+        },
+        {
+          "id": "14.2",
+          "kind": "unwanted",
+          "trigger": "the restart operation fails",
+          "actor": "App_Manager",
+          "behavior": "raise an error including the operation's failure message"
+        }
+      ]
+    },
+    {
+      "id": "15",
+      "user_story": {
+        "role": "agent tuning a service's runtime behavior",
+        "capability": "to read and update service-level settings (e.g. health check command, zero-downtime deploys)",
+        "benefit": "I can adjust behavior per service without recreating it"
+      },
+      "criteria": [
+        {
+          "id": "15.1",
+          "kind": "event",
+          "trigger": "a caller requests a service's settings",
+          "actor": "Service_Manager",
+          "behavior": "return the current value of each supported setting"
+        },
+        {
+          "id": "15.2",
+          "kind": "event",
+          "trigger": "a caller updates one or more supported service settings",
+          "actor": "Service_Manager",
+          "behavior": "apply the changes and return the updated settings"
+        },
+        {
+          "id": "15.3",
+          "kind": "unwanted",
+          "trigger": "a caller attempts to set an unsupported setting name",
+          "actor": "Service_Manager",
+          "behavior": "raise an error naming the unsupported setting instead of applying any change"
+        }
+      ]
+    },
+    {
+      "id": "16",
+      "user_story": {
+        "role": "agent that started an operation in error (or one running too long)",
+        "capability": "to cancel an in-progress operation",
+        "benefit": "it stops without waiting for it to time out or succeed/fail on its own"
+      },
+      "criteria": [
+        {
+          "id": "16.1",
+          "kind": "event",
+          "trigger": "a caller cancels an operation that is still queued or running",
+          "actor": "Operation_Manager",
+          "behavior": "request cancellation and return the operation's resulting status"
+        },
+        {
+          "id": "16.2",
+          "kind": "unwanted",
+          "trigger": "the specified operation has already reached a terminal state (`succeeded` or `failed`)",
+          "actor": "Operation_Manager",
+          "behavior": "raise an error explaining that it cannot be cancelled instead of requesting cancellation"
+        },
+        {
+          "id": "16.3",
+          "kind": "unwanted",
+          "trigger": "the specified operation identifier does not exist",
+          "actor": "Operation_Manager",
+          "behavior": "raise an error naming the identifier"
+        }
+      ]
+    },
+    {
+      "id": "17",
+      "user_story": {
+        "role": "agent correcting or standardizing naming",
+        "capability": "to rename an environment",
+        "benefit": "its handle reflects current naming conventions without recreating the environment"
+      },
+      "criteria": [
+        {
+          "id": "17.1",
+          "kind": "event",
+          "trigger": "a caller renames an environment to a new handle that is unique within the organization",
+          "actor": "Account_Manager",
+          "behavior": "apply the new handle and return the updated resource"
+        },
+        {
+          "id": "17.2",
+          "kind": "unwanted",
+          "trigger": "the requested new handle is already in use",
+          "actor": "Account_Manager",
+          "behavior": "raise an error instead of applying the rename"
+        },
+        {
+          "id": "17.3",
+          "kind": "unwanted",
+          "trigger": "the specified environment does not exist",
+          "actor": "Account_Manager",
+          "behavior": "raise an error naming the environment instead of attempting the rename"
+        }
+      ]
+    },
+    {
+      "id": "18",
+      "user_story": {
+        "role": "agent scaling read capacity",
+        "capability": "to create a read replica of an existing database",
+        "benefit": "read traffic can be served without adding load to the primary"
+      },
+      "criteria": [
+        {
+          "id": "18.1",
+          "kind": "event",
+          "trigger": "a caller requests a replica of an existing database with a handle and environment",
+          "actor": "Database_Manager",
+          "behavior": "start a replication operation and return the resulting replica database resource once the operation succeeds"
+        },
+        {
+          "id": "18.2",
+          "kind": "unwanted",
+          "trigger": "the replication operation fails",
+          "actor": "Database_Manager",
+          "behavior": "raise an error including the operation's failure message"
+        },
+        {
+          "id": "18.3",
+          "kind": "unwanted",
+          "trigger": "the specified source database does not exist",
+          "actor": "Database_Manager",
+          "behavior": "raise an error naming the database instead of starting replication"
+        }
+      ]
+    },
+    {
+      "id": "19",
+      "user_story": {
+        "role": "agent setting up a staging copy",
+        "capability": "to clone a database into a new, independent database",
+        "benefit": "I can test against realistic data without touching the source"
+      },
+      "criteria": [
+        {
+          "id": "19.1",
+          "kind": "event",
+          "trigger": "a caller requests a clone of an existing database into a new handle",
+          "actor": "Database_Manager",
+          "behavior": "start a clone operation and return the resulting new database resource once the operation succeeds"
+        },
+        {
+          "id": "19.2",
+          "kind": "unwanted",
+          "trigger": "the clone operation fails",
+          "actor": "Database_Manager",
+          "behavior": "raise an error including the operation's failure message"
+        },
+        {
+          "id": "19.3",
+          "kind": "unwanted",
+          "trigger": "the requested new handle is already in use within the target environment",
+          "actor": "Database_Manager",
+          "behavior": "raise an error instead of starting the clone"
+        }
+      ]
+    },
+    {
+      "id": "20",
+      "user_story": {
+        "role": "agent managing an existing database's configuration",
+        "capability": "to modify its IOPS/volume type, change its container size or disk size, reload it, rename it, or restart it",
+        "benefit": "I can adjust an existing database without recreating it"
+      },
+      "criteria": [
+        {
+          "id": "20.1",
+          "kind": "event",
+          "trigger": "a caller modifies a database's provisioned IOPS or EBS volume type",
+          "actor": "Database_Manager",
+          "behavior": "start a modify operation and return the resulting database resource once the operation succeeds"
+        },
+        {
+          "id": "20.2",
+          "kind": "event",
+          "trigger": "a caller changes a database's container size, disk size, or container profile",
+          "actor": "Database_Manager",
+          "behavior": "start a restart operation carrying the new values and return the resulting database resource once the operation succeeds"
+        },
+        {
+          "id": "20.3",
+          "kind": "event",
+          "trigger": "a caller reloads a database",
+          "actor": "Database_Manager",
+          "behavior": "start a reload operation and return the resulting status once the operation succeeds"
+        },
+        {
+          "id": "20.4",
+          "kind": "event",
+          "trigger": "a caller renames a database to a handle that is unique within its environment",
+          "actor": "Database_Manager",
+          "behavior": "apply the new handle and return the updated resource"
+        },
+        {
+          "id": "20.5",
+          "kind": "event",
+          "trigger": "a caller restarts a database without changing its size",
+          "actor": "Database_Manager",
+          "behavior": "start a restart operation and return the resulting status once the operation succeeds"
+        },
+        {
+          "id": "20.6",
+          "kind": "unwanted",
+          "trigger": "any of the above operations fails",
+          "actor": "Database_Manager",
+          "behavior": "raise an error including the operation's failure message"
+        },
+        {
+          "id": "20.7",
+          "kind": "unwanted",
+          "trigger": "the requested new handle in a rename is already in use within the same environment",
+          "actor": "Database_Manager",
+          "behavior": "raise an error instead of applying the rename"
+        }
+      ]
+    },
+    {
+      "id": "21",
+      "user_story": {
+        "role": "agent planning an upgrade",
+        "capability": "to list the database versions available for a given database type",
+        "benefit": "I know what upgrade targets exist before modifying a database"
+      },
+      "criteria": [
+        {
+          "id": "21.1",
+          "kind": "event",
+          "trigger": "a caller requests available versions for a database type",
+          "actor": "Database_Manager",
+          "behavior": "return the list of supported versions for that type"
+        },
+        {
+          "id": "21.2",
+          "kind": "unwanted",
+          "trigger": "the specified database type does not exist",
+          "actor": "Database_Manager",
+          "behavior": "raise an error naming the type instead of returning an empty list"
+        }
+      ]
+    },
+    {
+      "id": "22",
+      "user_story": {
+        "role": "agent auditing an environment's health",
+        "capability": "to see which apps or databases are currently in maintenance mode",
+        "benefit": "I know not to treat their unavailability as an incident"
+      },
+      "criteria": [
+        {
+          "id": "22.1",
+          "kind": "event",
+          "trigger": "a caller lists apps or databases currently in maintenance mode for an environment",
+          "actor": "Maintenance_Manager",
+          "behavior": "return that list"
+        },
+        {
+          "id": "22.2",
+          "kind": "unwanted",
+          "trigger": "the specified environment does not exist",
+          "actor": "Maintenance_Manager",
+          "behavior": "raise an error naming the environment instead of returning an empty list"
+        }
+      ]
+    },
+    {
+      "id": "23",
+      "user_story": {
+        "role": "agent configuring private networking or mutual TLS for an environment",
+        "capability": "to view the environment's configured CA certificate",
+        "benefit": "I can confirm dependent connections trust the correct certificate authority"
+      },
+      "criteria": [
+        {
+          "id": "23.1",
+          "kind": "event",
+          "trigger": "a caller requests an environment's current CA certificate",
+          "actor": "Account_Manager",
+          "behavior": "return it if one is configured"
+        },
+        {
+          "id": "23.2",
+          "kind": "unwanted",
+          "trigger": "the specified environment does not exist",
+          "actor": "Account_Manager",
+          "behavior": "raise an error naming the environment instead of returning a certificate"
+        }
+      ]
+    },
+    {
+      "id": "24",
+      "user_story": {
+        "role": "agent performing a one-time task inside a running app's container (e.g. a script or diagnostic command)",
+        "capability": "to run a single command and get its output back",
+        "benefit": "I can complete the task without an interactive shell session"
+      },
+      "criteria": [
+        {
+          "id": "24.1",
+          "kind": "event",
+          "trigger": "a caller submits a command to run against a specific service of an existing app",
+          "actor": "Service_Manager",
+          "behavior": "start a one-off run operation and return the command's captured output once the operation completes"
+        },
+        {
+          "id": "24.2",
+          "kind": "unwanted",
+          "trigger": "the one-off run operation fails",
+          "actor": "Service_Manager",
+          "behavior": "raise an error including the operation's failure message and any captured output"
+        },
+        {
+          "id": "24.3",
+          "kind": "unwanted",
+          "trigger": "the specified app or service does not exist",
+          "actor": "Service_Manager",
+          "behavior": "raise an error naming the missing resource instead of starting the operation"
+        }
+      ]
+    },
+    {
+      "id": "25",
+      "user_story": {
+        "role": "agent invoking any new operation-triggering tool from Tiers 1\u20133",
+        "capability": "long-running operations resolved before the tool call returns",
+        "benefit": "I always get a final success/failure result rather than a bare in-progress operation reference"
+      },
+      "criteria": [
+        {
+          "id": "25.1",
+          "kind": "event",
+          "trigger": "any Tier 1\u20133 tool starts an Aptible operation",
+          "actor": "tool",
+          "behavior": "wait for that operation to reach a terminal state before returning, using the same resolution mechanism as `wait_for_operation` in [`api_client.py`](../../api_client.py)"
+        },
+        {
+          "id": "25.2",
+          "kind": "unwanted",
+          "trigger": "an operation does not reach a terminal state within the API's own timeout behavior",
+          "actor": "tool",
+          "behavior": "raise an error rather than returning an ambiguous partial result"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,749 @@
+{
+  "concurrency": {
+    "active_stage": 2,
+    "blocked": {},
+    "parallel_candidates": [
+      "2.3",
+      "2.4",
+      "2.5"
+    ],
+    "ready": [
+      "2.1",
+      "2.2",
+      "2.3",
+      "2.4",
+      "2.5"
+    ],
+    "serial_candidates": [
+      "2.1",
+      "2.2"
+    ],
+    "waves": [
+      {
+        "mode": "parallel",
+        "tasks": [
+          "2.3",
+          "2.4",
+          "2.5"
+        ],
+        "wave": 1
+      },
+      {
+        "mode": "serial",
+        "tasks": [
+          "2.1"
+        ],
+        "wave": 2
+      },
+      {
+        "mode": "serial",
+        "tasks": [
+          "2.2"
+        ],
+        "wave": 3
+      }
+    ]
+  },
+  "generated_from": {
+    "file": "04_tasks.md",
+    "sha256": "40246ccd26488696a302ac9c95429d7a29e58d64e4f2825177d7eec133b8bdb6"
+  },
+  "requirement_count": 78,
+  "schema_version": 1,
+  "stages": {
+    "1": [
+      "1.1",
+      "1.2",
+      "1.3",
+      "1.4",
+      "1.5",
+      "1.6",
+      "1.7"
+    ],
+    "2": [
+      "2.1",
+      "2.2",
+      "2.3",
+      "2.4",
+      "2.5"
+    ],
+    "3": [
+      "3.1",
+      "3.2"
+    ],
+    "4": [
+      "4.1"
+    ],
+    "5": [
+      "5.1"
+    ],
+    "6": [
+      "6.1"
+    ],
+    "7": [
+      "7.1"
+    ],
+    "8": [
+      "8.1"
+    ]
+  },
+  "tasks": [
+    {
+      "capability_tier": "balanced",
+      "checked": true,
+      "delegation": "parallel-safe",
+      "dependency_delivery": "none",
+      "dependency_resolution": "none",
+      "depends_on": [],
+      "files": [
+        "models/base.py",
+        "tests/test_base.py"
+      ],
+      "id": "1.1",
+      "interfaces": "Consumes: `AptibleApiClient.post`/`wait_for_operation`/`ResourceManager.get_by_id` (all existing, unchanged); Produces: `ResourceManager._run_operation(resource_id: int, operations_path: str, operation_type: str, extra: dict | None = None, refetch: bool = True) -> T | None`, reused by every Stage 2+ manager method that triggers an operation on its own resource.",
+      "optional": false,
+      "reasoning_level": "medium",
+      "requirements": [
+        "25.1",
+        "25.2"
+      ],
+      "resolved_model": "claude-sonnet-5",
+      "risk": "low; purely additive method, no existing call site changes",
+      "stage": 1,
+      "task_category": "code_analysis",
+      "title": "Add the shared `_run_operation` helper to `ResourceManager`",
+      "verification": "New [`tests/test_base.py`](../../tests/test_base.py) covers: refetch path returns the resource, `refetch=False` returns `None`, and a failed operation propagates `wait_for_operation`'s exception. Run `just test`, `just typecheck`, `just lint`."
+    },
+    {
+      "capability_tier": "balanced",
+      "checked": true,
+      "delegation": "sequential subagent",
+      "dependency_delivery": "none",
+      "dependency_resolution": "none",
+      "depends_on": [],
+      "files": [
+        "models/backup.py",
+        "tests/test_backup.py",
+        "models/__init__.py"
+      ],
+      "id": "1.2",
+      "interfaces": "Consumes: `AptibleApiClient.get`/`post`/`wait_for_operation` (existing); Produces: `Backup` model and `BackupManager.{list_for_database, list_orphaned, restore, purge}`, exported from [`models/__init__.py`](../../models/__init__.py) for Stage 3 tool tasks to import.",
+      "optional": false,
+      "reasoning_level": "medium",
+      "requirements": [
+        "1.1",
+        "1.2",
+        "1.3",
+        "2.1",
+        "2.2",
+        "2.3",
+        "3.1",
+        "3.2",
+        "3.3"
+      ],
+      "resolved_model": "claude-sonnet-5",
+      "risk": "low; new file, no existing behavior touched",
+      "stage": 1,
+      "task_category": "code_analysis",
+      "title": "Add `Backup` model and `BackupManager`",
+      "verification": "New [`tests/test_backup.py`](../../tests/test_backup.py) mocks `AptibleApiClient` (per [`tests/test_service.py`](../../tests/test_service.py)'s pattern) and asserts each method's exact path/body and return type. Confirm live against the Aptible API/CLI: the exact destination-account field name on restore, and the exact `_links` key a backup resource uses for its parent database (assumed `links.database.href` for the `database_id` computed field) \u2014 update the field name in code if either differs from this assumption. Run `just test`, `just typecheck`, `just lint`."
+    },
+    {
+      "capability_tier": "frontier",
+      "checked": true,
+      "delegation": "sequential subagent",
+      "dependency_delivery": "none",
+      "dependency_resolution": "none",
+      "depends_on": [],
+      "files": [
+        "models/certificate.py",
+        "tests/test_certificate.py",
+        "models/__init__.py"
+      ],
+      "id": "1.3",
+      "interfaces": "Consumes: `AptibleApiClient.get`/`post` (existing); Produces: `Certificate` model and `CertificateManager.{upload, list_for_account}`.",
+      "optional": false,
+      "reasoning_level": "high",
+      "requirements": [
+        "7.1",
+        "7.3",
+        "7.4"
+      ],
+      "resolved_model": "claude-opus-5",
+      "risk": "medium; handles a private key as a plain argument \u2014 verify no logging path exists",
+      "stage": 1,
+      "task_category": "code_analysis",
+      "title": "Add `Certificate` model and `CertificateManager`",
+      "verification": "New [`tests/test_certificate.py`](../../tests/test_certificate.py) mocks `AptibleApiClient`, asserts request body shape, and asserts an `HTTPError` from a mocked 422 response propagates unmodified. Confirm `private_key` never appears in any log statement (there should be none). Confirm live that certificate responses actually include `common_name` and `fingerprint` under those exact field names. Run `just test`, `just typecheck`, `just lint`."
+    },
+    {
+      "capability_tier": "balanced",
+      "checked": true,
+      "delegation": "sequential subagent",
+      "dependency_delivery": "none",
+      "dependency_resolution": "none",
+      "depends_on": [],
+      "files": [
+        "models/maintenance.py",
+        "tests/test_maintenance.py",
+        "models/__init__.py"
+      ],
+      "id": "1.4",
+      "interfaces": "Consumes: `AptibleApiClient.get` (existing); Produces: `MaintenanceEntry` model and `MaintenanceManager.list_for_account(account_id: int) -> list[MaintenanceEntry]`.",
+      "optional": false,
+      "reasoning_level": "medium",
+      "requirements": [
+        "22.1",
+        "22.2"
+      ],
+      "resolved_model": "claude-sonnet-5",
+      "risk": "low",
+      "stage": 1,
+      "task_category": "code_analysis",
+      "title": "Add `MaintenanceEntry` model and `MaintenanceManager`",
+      "verification": "New [`tests/test_maintenance.py`](../../tests/test_maintenance.py) mocks two separate `GET` responses and asserts client-side account filtering and `resource_type` tagging. Confirm live the actual response fields for `/maintenances/apps`/`/maintenances/databases` and which field identifies the owning account for client-side filtering (assumed `account`/`_links.account`, matching every other resource's pattern). Run `just test`, `just typecheck`, `just lint`."
+    },
+    {
+      "capability_tier": "balanced",
+      "checked": true,
+      "delegation": "parallel-safe",
+      "dependency_delivery": "none",
+      "dependency_resolution": "none",
+      "depends_on": [],
+      "files": [
+        "models/service.py",
+        "tests/test_service.py"
+      ],
+      "id": "1.5",
+      "interfaces": "Consumes: `AptibleApiClient.get`/`put` (existing); Produces: `ServiceManager.{get_settings, update_settings}`.",
+      "optional": false,
+      "reasoning_level": "medium",
+      "requirements": [
+        "15.1",
+        "15.2",
+        "15.3"
+      ],
+      "resolved_model": "claude-sonnet-5",
+      "risk": "low",
+      "stage": 1,
+      "task_category": "code_analysis",
+      "title": "Add service settings methods to `ServiceManager`",
+      "verification": "Extend [`tests/test_service.py`](../../tests/test_service.py) with cases for both methods, including the unsupported-setting-name rejection. Confirm live that `GET /services/{id}` actually returns `force_zero_downtime`, `naive_health_check`, `restart_free_scaling`, and `stop_timeout`. Run `just test`, `just typecheck`, `just lint`."
+    },
+    {
+      "capability_tier": "balanced",
+      "checked": true,
+      "delegation": "parallel-safe",
+      "dependency_delivery": "none",
+      "dependency_resolution": "none",
+      "depends_on": [],
+      "files": [
+        "models/operation.py",
+        "tests/test_operation.py"
+      ],
+      "id": "1.6",
+      "interfaces": "Consumes: `AptibleApiClient.get`/`put` (existing); Produces: `OperationManager.cancel(operation_id: int) -> Operation`.",
+      "optional": false,
+      "reasoning_level": "medium",
+      "requirements": [
+        "16.1",
+        "16.2",
+        "16.3"
+      ],
+      "resolved_model": "claude-sonnet-5",
+      "risk": "low",
+      "stage": 1,
+      "task_category": "code_analysis",
+      "title": "Add `cancel` to `OperationManager`",
+      "verification": "New [`tests/test_operation.py`](../../tests/test_operation.py) covers cancelling a `running` operation, rejecting a `succeeded` one, and an unknown id. Run `just test`, `just typecheck`, `just lint`."
+    },
+    {
+      "capability_tier": "balanced",
+      "checked": true,
+      "delegation": "parallel-safe",
+      "dependency_delivery": "none",
+      "dependency_resolution": "none",
+      "depends_on": [],
+      "files": [
+        "models/account.py",
+        "tests/test_account.py"
+      ],
+      "id": "1.7",
+      "interfaces": "Consumes: `AptibleApiClient.get`/`put` (existing); Produces: `AccountManager.{rename, get_ca_certificate}`.",
+      "optional": false,
+      "reasoning_level": "medium",
+      "requirements": [
+        "17.1",
+        "17.2",
+        "17.3",
+        "23.1",
+        "23.2"
+      ],
+      "resolved_model": "claude-sonnet-5",
+      "risk": "low",
+      "stage": 1,
+      "task_category": "code_analysis",
+      "title": "Add rename and CA-certificate read to `AccountManager`",
+      "verification": "Extend [`tests/test_account.py`](../../tests/test_account.py) with rename (success + duplicate-handle) and CA-certificate-read (configured + unconfigured) cases. Confirm live that `GET /accounts/{id}` returns `ca_body` (and whether it's `null` or simply absent when unconfigured, so `get_ca_certificate` handles both). Run `just test`, `just typecheck`, `just lint`."
+    },
+    {
+      "capability_tier": "frontier",
+      "checked": false,
+      "delegation": "sequential subagent",
+      "dependency_delivery": "none",
+      "dependency_resolution": "none",
+      "depends_on": [
+        "1.1"
+      ],
+      "files": [
+        "models/log_drain.py",
+        "tests/test_log_drain.py",
+        "models/__init__.py"
+      ],
+      "id": "2.1",
+      "interfaces": "Consumes: `ResourceManager._run_operation` (task 1.1); Produces: `LogDrain` model and `LogDrainManager.{create, list_for_account, deprovision}`.",
+      "optional": false,
+      "reasoning_level": "high",
+      "requirements": [
+        "4.1",
+        "4.2",
+        "4.3",
+        "4.4",
+        "4.5"
+      ],
+      "resolved_model": "claude-opus-5",
+      "risk": "medium; the account-nested list path is unconfirmed against a real API \u2014 verify the fallback branch is actually exercised by a test, not just written",
+      "stage": 2,
+      "task_category": "code_analysis",
+      "title": "Add `LogDrain` model and `LogDrainManager`",
+      "verification": "New `tests/test_log_drain.py` covers create (valid + unsupported type), list (nested-path success, and fallback triggered by a mocked 404), and deprovision (success + unknown id). Run `just test`, `just typecheck`, `just lint`."
+    },
+    {
+      "capability_tier": "frontier",
+      "checked": false,
+      "delegation": "sequential subagent",
+      "dependency_delivery": "none",
+      "dependency_resolution": "none",
+      "depends_on": [
+        "1.1"
+      ],
+      "files": [
+        "models/metric_drain.py",
+        "tests/test_metric_drain.py",
+        "models/__init__.py"
+      ],
+      "id": "2.2",
+      "interfaces": "Consumes: `ResourceManager._run_operation` (task 1.1); Produces: `MetricDrain` model and `MetricDrainManager.{create, list_for_account, deprovision}`.",
+      "optional": false,
+      "reasoning_level": "high",
+      "requirements": [
+        "5.1",
+        "5.2",
+        "5.3",
+        "5.4",
+        "5.5"
+      ],
+      "resolved_model": "claude-opus-5",
+      "risk": "medium; same unconfirmed-list-path caveat as task 2.1",
+      "stage": 2,
+      "task_category": "code_analysis",
+      "title": "Add `MetricDrain` model and `MetricDrainManager`",
+      "verification": "New `tests/test_metric_drain.py` mirrors task 2.1's test cases for the metric-drain shape. Run `just test`, `just typecheck`, `just lint`."
+    },
+    {
+      "capability_tier": "frontier",
+      "checked": false,
+      "delegation": "parallel-safe",
+      "dependency_delivery": "none",
+      "dependency_resolution": "none",
+      "depends_on": [
+        "1.1"
+      ],
+      "files": [
+        "models/vhost.py",
+        "tests/test_vhost.py"
+      ],
+      "id": "2.3",
+      "interfaces": "Consumes: `ResourceManager._run_operation` (task 1.1); Produces: `VhostManager.{create_custom_domain, create_database_endpoint, modify, renew}`, extended `Vhost` model.",
+      "optional": false,
+      "reasoning_level": "extra_high",
+      "requirements": [
+        "6.1",
+        "6.2",
+        "6.3",
+        "7.2",
+        "7.5",
+        "8.1",
+        "8.2",
+        "8.3",
+        "9.1",
+        "9.2",
+        "10.1",
+        "10.2",
+        "10.3"
+      ],
+      "resolved_model": "claude-opus-5",
+      "risk": "medium; resolves two of the design's three flagged Residual Uncertainty items (database-endpoint path, apex-domain rejection) \u2014 treat the HAL-relation resolution as the riskiest sub-step and test it explicitly",
+      "stage": 2,
+      "task_category": "heavy_reasoning",
+      "title": "Extend `Vhost`: custom domains, TLS, endpoint types",
+      "verification": "Extend [`tests/test_vhost.py`](../../tests/test_vhost.py) with cases for managed-TLS creation, custom-cert creation, each endpoint type (including the missing-certificate rejection for `tls`), database-endpoint creation (mocking the database's `_links.vhosts`), modify, and renew. Run `just test`, `just typecheck`, `just lint`."
+    },
+    {
+      "capability_tier": "balanced",
+      "checked": false,
+      "delegation": "parallel-safe",
+      "dependency_delivery": "none",
+      "dependency_resolution": "none",
+      "depends_on": [
+        "1.1"
+      ],
+      "files": [
+        "models/app.py",
+        "tests/test_app.py"
+      ],
+      "id": "2.4",
+      "interfaces": "Consumes: `ResourceManager._run_operation` (task 1.1), existing `OperationManager.logs`; Produces: `AppManager.{rename, rebuild, restart, run_command}` and extended `deploy`.",
+      "optional": false,
+      "reasoning_level": "medium",
+      "requirements": [
+        "11.1",
+        "11.2",
+        "11.3",
+        "12.1",
+        "12.2",
+        "12.3",
+        "13.1",
+        "13.2",
+        "14.1",
+        "14.2",
+        "24.1",
+        "24.2",
+        "24.3"
+      ],
+      "resolved_model": "claude-sonnet-5",
+      "risk": "low; extends an existing method carefully to avoid changing its current no-arg behavior \u2014 verify the existing `createApp` call path (which uses `deploy(app_id)` with no args) still passes unchanged",
+      "stage": 2,
+      "task_category": "code_analysis",
+      "title": "Extend `AppManager`: rename, deploy, rebuild, restart, run",
+      "verification": "Extend [`tests/test_app.py`](../../tests/test_app.py) with rename (success + duplicate handle), deploy (new-image path + unchanged no-arg path), rebuild, restart, and run_command (success + failure with captured output). Run `just test`, `just typecheck`, `just lint`."
+    },
+    {
+      "capability_tier": "balanced",
+      "checked": false,
+      "delegation": "parallel-safe",
+      "dependency_delivery": "none",
+      "dependency_resolution": "none",
+      "depends_on": [
+        "1.1"
+      ],
+      "files": [
+        "models/database.py",
+        "tests/test_database.py"
+      ],
+      "id": "2.5",
+      "interfaces": "Consumes: `ResourceManager._run_operation` (task 1.1), existing `list_available_types`; Produces: `DatabaseManager.{replicate, clone, modify_iops, resize, reload, rename, restart, list_versions_for_type}`.",
+      "optional": false,
+      "reasoning_level": "medium",
+      "requirements": [
+        "18.1",
+        "18.2",
+        "18.3",
+        "19.1",
+        "19.2",
+        "19.3",
+        "20.1",
+        "20.2",
+        "20.3",
+        "20.4",
+        "20.5",
+        "20.6",
+        "20.7",
+        "21.1",
+        "21.2"
+      ],
+      "resolved_model": "claude-sonnet-5",
+      "risk": "low; all shapes are fully confirmed in the design, no residual uncertainty here",
+      "stage": 2,
+      "task_category": "code_analysis",
+      "title": "Extend `DatabaseManager`: replicate, clone, resize, rename",
+      "verification": "Extend [`tests/test_database.py`](../../tests/test_database.py) with one case per new method (success + a representative failure/not-found path each) and a `list_versions_for_type` case confirming no new HTTP call beyond the existing `/database_images` fetch. Run `just test`, `just typecheck`, `just lint`."
+    },
+    {
+      "capability_tier": "balanced",
+      "checked": false,
+      "delegation": "controller",
+      "dependency_delivery": "none",
+      "dependency_resolution": "none",
+      "depends_on": [
+        "1.2",
+        "1.3",
+        "2.1",
+        "2.2"
+      ],
+      "files": [
+        "main.py",
+        "tests/test_main.py"
+      ],
+      "id": "3.1",
+      "interfaces": "Consumes: `BackupManager` (1.2), `CertificateManager` (1.3), `LogDrainManager` (2.1), `MetricDrainManager` (2.2), existing `getApp`/`getDatabase`/`getAccount`; Produces: the 12 named `@mcp.tool()` functions above, registered on the module-level `mcp` instance.",
+      "optional": false,
+      "reasoning_level": "medium",
+      "requirements": [
+        "1.1",
+        "1.2",
+        "1.3",
+        "2.1",
+        "2.2",
+        "2.3",
+        "3.1",
+        "3.2",
+        "3.3",
+        "4.1",
+        "4.2",
+        "4.3",
+        "4.4",
+        "4.5",
+        "5.1",
+        "5.2",
+        "5.3",
+        "5.4",
+        "5.5",
+        "7.1",
+        "7.3",
+        "7.4"
+      ],
+      "resolved_model": "claude-sonnet-5",
+      "risk": "low; thin wrappers over already-tested managers",
+      "stage": 3,
+      "task_category": "code_analysis",
+      "title": "Add Tier 1 tools: backups, drains, certificates",
+      "verification": "Extend [`tests/test_main.py`](../../tests/test_main.py) with one case per tool verifying correct manager composition and handle resolution (mocking the managers, not the HTTP layer). Run `just test`, `just typecheck`, `just lint`."
+    },
+    {
+      "capability_tier": "balanced",
+      "checked": false,
+      "delegation": "controller",
+      "dependency_delivery": "none",
+      "dependency_resolution": "none",
+      "depends_on": [
+        "2.3"
+      ],
+      "files": [
+        "main.py",
+        "tests/test_main.py"
+      ],
+      "id": "3.2",
+      "interfaces": "Consumes: extended `VhostManager` (2.3), existing `getApp`/`getDatabase`/`getService`; Produces: the 5 named `@mcp.tool()` functions above.",
+      "optional": false,
+      "reasoning_level": "medium",
+      "requirements": [
+        "6.1",
+        "6.2",
+        "6.3",
+        "7.2",
+        "7.5",
+        "8.1",
+        "8.2",
+        "8.3",
+        "9.1",
+        "9.2",
+        "10.1",
+        "10.2",
+        "10.3"
+      ],
+      "resolved_model": "claude-sonnet-5",
+      "risk": "low; thin wrappers, though the underlying manager (2.3) carries the design's residual uncertainty \u2014 confirm task 2.3's tests pass before relying on this layer",
+      "stage": 3,
+      "task_category": "code_analysis",
+      "title": "Add Tier 1 MCP tools for endpoints",
+      "verification": "Extend [`tests/test_main.py`](../../tests/test_main.py) with one case per tool. Run `just test`, `just typecheck`, `just lint`."
+    },
+    {
+      "capability_tier": "balanced",
+      "checked": false,
+      "delegation": "controller",
+      "dependency_delivery": "none",
+      "dependency_resolution": "none",
+      "depends_on": [
+        "3.1",
+        "3.2"
+      ],
+      "files": [
+        "none (review checkpoint)"
+      ],
+      "id": "4.1",
+      "interfaces": "Consumes: passing Tier 1 test suite and the two flagged residual-uncertainty resolutions; Produces: an explicit go/no-go decision to proceed to Tier 2.",
+      "optional": false,
+      "reasoning_level": "medium",
+      "requirements": [
+        "25.1",
+        "25.2"
+      ],
+      "resolved_model": "claude-sonnet-5",
+      "risk": "low; review-only, no code change",
+      "stage": 4,
+      "task_category": "review",
+      "title": "Review Tier 1 before starting Tier 2",
+      "verification": "`just test && just typecheck && just lint`; human confirmation that the two residual-uncertainty items are resolved, not merely deferred."
+    },
+    {
+      "capability_tier": "balanced",
+      "checked": false,
+      "delegation": "controller",
+      "dependency_delivery": "none",
+      "dependency_resolution": "none",
+      "depends_on": [
+        "1.5",
+        "1.6",
+        "1.7",
+        "2.4",
+        "4.1"
+      ],
+      "files": [
+        "main.py",
+        "tests/test_main.py"
+      ],
+      "id": "5.1",
+      "interfaces": "Consumes: extended `ServiceManager` (1.5), `OperationManager` (1.6), `AccountManager` (1.7), `AppManager` (2.4); Produces: the 9 named `@mcp.tool()` functions above.",
+      "optional": false,
+      "reasoning_level": "medium",
+      "requirements": [
+        "11.1",
+        "11.2",
+        "11.3",
+        "12.1",
+        "12.2",
+        "12.3",
+        "13.1",
+        "13.2",
+        "14.1",
+        "14.2",
+        "15.1",
+        "15.2",
+        "15.3",
+        "16.1",
+        "16.2",
+        "16.3",
+        "17.1",
+        "17.2",
+        "17.3",
+        "23.1",
+        "23.2"
+      ],
+      "resolved_model": "claude-sonnet-5",
+      "risk": "low",
+      "stage": 5,
+      "task_category": "code_analysis",
+      "title": "Add Tier 2 MCP tools",
+      "verification": "Extend [`tests/test_main.py`](../../tests/test_main.py) with one case per tool. Run `just test`, `just typecheck`, `just lint`."
+    },
+    {
+      "capability_tier": "balanced",
+      "checked": false,
+      "delegation": "controller",
+      "dependency_delivery": "none",
+      "dependency_resolution": "none",
+      "depends_on": [
+        "5.1"
+      ],
+      "files": [
+        "none (review checkpoint)"
+      ],
+      "id": "6.1",
+      "interfaces": "Consumes: passing Tier 1 + Tier 2 test suite; Produces: an explicit go/no-go decision to proceed to Tier 3.",
+      "optional": false,
+      "reasoning_level": "medium",
+      "requirements": [
+        "25.1",
+        "25.2"
+      ],
+      "resolved_model": "claude-sonnet-5",
+      "risk": "low; review-only, no code change",
+      "stage": 6,
+      "task_category": "review",
+      "title": "Review Tier 2 before starting Tier 3",
+      "verification": "`just test && just typecheck && just lint`; human confirmation that `createApp`'s existing deploy path is unaffected."
+    },
+    {
+      "capability_tier": "frontier",
+      "checked": false,
+      "delegation": "controller",
+      "dependency_delivery": "none",
+      "dependency_resolution": "none",
+      "depends_on": [
+        "1.4",
+        "2.4",
+        "2.5",
+        "6.1"
+      ],
+      "files": [
+        "main.py",
+        "tests/test_main.py"
+      ],
+      "id": "7.1",
+      "interfaces": "Consumes: `MaintenanceManager` (1.4), extended `AppManager.run_command` (2.4), extended `DatabaseManager` (2.5); Produces: the 10 named `@mcp.tool()` functions above.",
+      "optional": false,
+      "reasoning_level": "high",
+      "requirements": [
+        "18.1",
+        "18.2",
+        "18.3",
+        "19.1",
+        "19.2",
+        "19.3",
+        "20.1",
+        "20.2",
+        "20.3",
+        "20.4",
+        "20.5",
+        "20.6",
+        "20.7",
+        "21.1",
+        "21.2",
+        "22.1",
+        "22.2",
+        "24.1",
+        "24.2",
+        "24.3"
+      ],
+      "resolved_model": "claude-opus-5",
+      "risk": "medium; these tools trigger real database resize/restart/modify operations against production infrastructure once deployed \u2014 no rollback mechanism exists beyond Aptible's own operation semantics (a failed operation leaves the database unchanged), so ensure each tool's docstring makes the operation's effect unambiguous to the calling agent",
+      "stage": 7,
+      "task_category": "code_analysis",
+      "title": "Add Tier 3 MCP tools",
+      "verification": "Extend [`tests/test_main.py`](../../tests/test_main.py) with one case per tool, including the replicate/clone composition (mocking both managers). Run `just test`, `just typecheck`, `just lint`."
+    },
+    {
+      "capability_tier": "balanced",
+      "checked": false,
+      "delegation": "controller",
+      "dependency_delivery": "none",
+      "dependency_resolution": "none",
+      "depends_on": [
+        "3.1",
+        "3.2",
+        "5.1",
+        "7.1"
+      ],
+      "files": [
+        "README.md",
+        "[`main.py`](../../main.py) (read-only cross-check)"
+      ],
+      "id": "8.1",
+      "interfaces": "Consumes: every Stage 3/5/7 tool and the full requirements/design traceability chain; Produces: a confirmed-green full test suite and an updated [`README.md`](../../README.md) reflecting the new tool surface.",
+      "optional": false,
+      "reasoning_level": "medium",
+      "requirements": [
+        "25.1",
+        "25.2"
+      ],
+      "resolved_model": "claude-sonnet-5",
+      "risk": "low; verification and documentation only",
+      "stage": 8,
+      "task_category": "review",
+      "title": "Final verification, traceability check, README update",
+      "verification": "`just test && just typecheck && just lint`; manual line-by-line check of the design's New MCP Tools list against [`main.py`](../../main.py)'s `@mcp.tool()` registrations."
+    }
+  ]
+}

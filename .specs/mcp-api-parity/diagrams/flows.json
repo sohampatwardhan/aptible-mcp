@@ -1,0 +1,31 @@
+{
+  "diagram": "sequence",
+  "target": "sequenceDiagram",
+  "actors": [
+    { "id": "Tool", "kind": "actor" },
+    { "id": "BackupManager" },
+    { "id": "DatabaseManager" },
+    { "id": "AptibleAPI" }
+  ],
+  "steps": [
+    { "type": "message", "from": "Tool", "to": "BackupManager", "label": "restore(backup_id, new_handle, destination_account_id)", "kind": "sync" },
+    { "type": "message", "from": "BackupManager", "to": "AptibleAPI", "label": "POST /backups/{id}/operations {type: restore, handle, ...}", "kind": "sync" },
+    { "type": "message", "from": "AptibleAPI", "to": "BackupManager", "label": "202 operation", "kind": "reply" },
+    { "type": "loop", "label": "poll until terminal (wait_for_operation)", "steps": [
+      { "type": "message", "from": "BackupManager", "to": "AptibleAPI", "label": "GET /operations/{id}", "kind": "sync" },
+      { "type": "message", "from": "AptibleAPI", "to": "BackupManager", "label": "status: queued|running|succeeded|failed", "kind": "reply" }
+    ] },
+    { "type": "alt", "branches": [
+      { "label": "succeeded", "steps": [
+        { "type": "message", "from": "BackupManager", "to": "Tool", "label": "restore confirmed", "kind": "reply" },
+        { "type": "message", "from": "Tool", "to": "DatabaseManager", "label": "get(new_handle, destination_account_handle)", "kind": "sync" },
+        { "type": "message", "from": "DatabaseManager", "to": "AptibleAPI", "label": "GET /accounts/{id}/databases", "kind": "sync" },
+        { "type": "message", "from": "AptibleAPI", "to": "DatabaseManager", "label": "new database resource", "kind": "reply" },
+        { "type": "message", "from": "DatabaseManager", "to": "Tool", "label": "Database", "kind": "reply" }
+      ] },
+      { "label": "failed", "steps": [
+        { "type": "message", "from": "BackupManager", "to": "Tool", "label": "raise Exception(operation failure message)", "kind": "reply" }
+      ] }
+    ] }
+  ]
+}

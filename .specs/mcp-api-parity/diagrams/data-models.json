@@ -1,0 +1,40 @@
+{
+  "diagram": "graph",
+  "target": "classDiagram",
+  "direction": "TB",
+  "nodes": [
+    { "id": "ResourceBase", "kind": "abstract", "members": ["+int id", "+dict links"] },
+    { "id": "Backup", "members": ["+str created_at", "+int database_id"] },
+    { "id": "LogDrain", "members": ["+str handle", "+str drain_type", "+str status"] },
+    { "id": "MetricDrain", "members": ["+str handle", "+str drain_type", "+str status"] },
+    { "id": "Certificate", "members": ["+str common_name", "+str fingerprint"] },
+    { "id": "MaintenanceEntry", "members": ["+str handle", "+str status"] },
+    { "id": "Vhost", "members": ["+str type", "+str virtual_domain", "+str user_domain", "+list container_ports"] },
+    { "id": "App", "members": ["+str handle", "+str status"] },
+    { "id": "Database", "members": ["+str handle", "+str type", "+str status"] },
+    { "id": "Service", "members": ["+str handle", "+int container_count"] },
+    { "id": "Account", "members": ["+str handle", "+str ca_body"] },
+    { "id": "Operation", "members": ["+str type", "+str status", "+bool cancelled"] }
+  ],
+  "edges": [
+    { "from": "ResourceBase", "to": "Backup", "kind": "inheritance" },
+    { "from": "ResourceBase", "to": "LogDrain", "kind": "inheritance" },
+    { "from": "ResourceBase", "to": "MetricDrain", "kind": "inheritance" },
+    { "from": "ResourceBase", "to": "Certificate", "kind": "inheritance" },
+    { "from": "ResourceBase", "to": "MaintenanceEntry", "kind": "inheritance" },
+    { "from": "ResourceBase", "to": "Vhost", "kind": "inheritance" },
+    { "from": "ResourceBase", "to": "App", "kind": "inheritance" },
+    { "from": "ResourceBase", "to": "Database", "kind": "inheritance" },
+    { "from": "ResourceBase", "to": "Service", "kind": "inheritance" },
+    { "from": "ResourceBase", "to": "Account", "kind": "inheritance" },
+    { "from": "ResourceBase", "to": "Operation", "kind": "inheritance" },
+    { "from": "Backup", "to": "Database", "kind": "association", "label": "backs up" },
+    { "from": "LogDrain", "to": "Account", "kind": "association", "label": "provisioned in" },
+    { "from": "MetricDrain", "to": "Account", "kind": "association", "label": "provisioned in" },
+    { "from": "Certificate", "to": "Account", "kind": "association", "label": "stored in" },
+    { "from": "Vhost", "to": "Certificate", "kind": "association", "label": "uses" },
+    { "from": "Vhost", "to": "Service", "kind": "association", "label": "exposes" },
+    { "from": "MaintenanceEntry", "to": "Account", "kind": "association", "label": "scoped to" },
+    { "from": "Operation", "to": "App", "kind": "association", "label": "triggered on" }
+  ]
+}

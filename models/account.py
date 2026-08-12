@@ -89,6 +89,26 @@ class AccountManager(ResourceManager[Account, str]):
         }
         return await super().create(create_data)
 
+    async def rename(self, account_id: int, new_handle: str) -> Account:
+        """
+        Rename an environment. A handle that's already taken elsewhere in
+        the organization surfaces as the API's own HTTPError, unhandled here,
+        exactly like existing handle-uniqueness behavior elsewhere.
+        """
+        response = self.api_client.put(
+            f"{self.resource_url}/{account_id}", {"handle": new_handle}
+        )
+        return self.resource_model.model_validate(response)
+
+    async def get_ca_certificate(self, account_id: int) -> Optional[str]:
+        """
+        Return the environment's configured CA certificate body, or None if
+        none is configured. The write path for setting this is intentionally
+        not implemented here (unconfirmed against the real API).
+        """
+        response = self.api_client.get(f"{self.resource_url}/{account_id}")
+        return response.get("ca_body")
+
     async def get_by_stack_id(self, stack_id: int) -> List[Account]:
         """
         Get accounts/environments for a stack by stack ID.
