@@ -1,5 +1,14 @@
+import re
 from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, TYPE_CHECKING
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+    model_validator,
+)
 
 if TYPE_CHECKING:
     from api_client import AptibleApiClient
@@ -7,6 +16,101 @@ if TYPE_CHECKING:
 T = TypeVar("T", bound=BaseModel)
 ID = TypeVar("ID")
 _MAX_LIST_PAGES = 1000
+_REDACTED = "[REDACTED]"
+_SENSITIVE_KEYS = frozenset(
+    {
+        "api_key",
+        "access_key",
+        "auth",
+        "authorization",
+        "ca_body",
+        "certificate_body",
+        "client_secret",
+        "connection_url",
+        "credential",
+        "credentials",
+        "database_url",
+        "drain_configuration",
+        "passphrase",
+        "password",
+        "private_key",
+        "secret",
+        "secret_key",
+        "signing_key",
+        "token",
+        "webhook_secret",
+    }
+)
+_SENSITIVE_KEY_SUFFIXES = (
+    "_api_key",
+    "_access_key",
+    "_connection_url",
+    "_credential",
+    "_credentials",
+    "_database_url",
+    "_passphrase",
+    "_password",
+    "_private_key",
+    "_secret",
+    "_secret_key",
+    "_signing_key",
+    "_token",
+    "_webhook_secret",
+)
+
+
+def _is_sensitive_key(key: Any) -> bool:
+    if not isinstance(key, str):
+        return False
+    normalized = re.sub(r"(?<!^)(?=[A-Z])", "_", key).lower().replace("-", "_")
+    return normalized in _SENSITIVE_KEYS or normalized.endswith(_SENSITIVE_KEY_SUFFIXES)
+
+
+def _sanitize_url(value: str) -> str:
+    """Remove URL userinfo and redact credential-like query parameters."""
+    try:
+        parsed = urlsplit(value)
+        if not parsed.scheme or not parsed.netloc:
+            return value
+
+        hostname = parsed.hostname or ""
+        if ":" in hostname and not hostname.startswith("["):
+            hostname = f"[{hostname}]"
+        netloc = hostname
+        if parsed.port is not None:
+            netloc = f"{netloc}:{parsed.port}"
+
+        query = urlencode(
+            [
+                (key, _REDACTED if _is_sensitive_key(key) else query_value)
+                for key, query_value in parse_qsl(parsed.query, keep_blank_values=True)
+            ]
+        )
+        return urlunsplit((parsed.scheme, netloc, parsed.path, query, ""))
+    except ValueError:
+        return _REDACTED
+
+
+def _sanitize_for_output(value: Any) -> Any:
+    """Recursively remove embedded resources and redact secret-bearing fields."""
+    if isinstance(value, dict):
+        sanitized: Dict[Any, Any] = {}
+        for key, nested_value in value.items():
+            if key == "_embedded":
+                continue
+            sanitized[key] = (
+                _REDACTED
+                if _is_sensitive_key(key)
+                else _sanitize_for_output(nested_value)
+            )
+        return sanitized
+    if isinstance(value, list):
+        return [_sanitize_for_output(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_sanitize_for_output(item) for item in value)
+    if isinstance(value, str):
+        return _sanitize_url(value)
+    return value
 
 
 class ResourceBase(BaseModel):
@@ -19,6 +123,25 @@ class ResourceBase(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
+    @model_serializer(mode="wrap")
+    def serialize_without_secrets(
+        self, handler: SerializerFunctionWrapHandler
+    ) -> Dict[str, Any]:
+        """Return only declared public fields, with secrets removed recursively."""
+        serialized = handler(self)
+        public_fields = set(type(self).model_fields)
+        public_fields.update(type(self).model_computed_fields)
+        public_fields.discard("links")
+        return {
+            key: (
+                _REDACTED
+                if _is_sensitive_key(key)
+                else _sanitize_for_output(serialized[key])
+            )
+            for key in public_fields
+            if key in serialized
+        }
+
     @model_validator(mode="before")
     @classmethod
     def transform_links(cls, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -27,6 +150,11 @@ class ResourceBase(BaseModel):
         """
         if isinstance(data, dict) and "_links" in data:
             data["links"] = data.pop("_links")
+        if isinstance(data, dict):
+            # Embedded HAL relationships can contain credentials for resources
+            # unrelated to the requested object. Managers expose those resources
+            # through dedicated tools, so retaining them is unnecessary and unsafe.
+            data.pop("_embedded", None)
         return data
 
 

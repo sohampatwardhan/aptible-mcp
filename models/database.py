@@ -9,9 +9,17 @@ class DatabaseImage(ResourceBase):
     Database Images available for managed databases.
     """
 
+    name: Optional[str] = Field(None, description="Database image display name")
     type: str = Field(..., description="Database type (postgresql, redis, etc)")
     version: str = Field(..., description="Database version")
     description: str = Field(..., description="Database description")
+    docker_repo: Optional[str] = Field(None, description="Database image repository")
+    docker_ref: Optional[str] = Field(None, description="Database image reference")
+    default: Optional[bool] = Field(
+        None, description="Whether this is the default image"
+    )
+    created_at: Optional[str] = Field(None, description="Image creation timestamp")
+    updated_at: Optional[str] = Field(None, description="Image update timestamp")
 
 
 class Database(ResourceBase):

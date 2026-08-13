@@ -203,7 +203,9 @@ class TestAccountManager:
             "test-account-3",
         ]
 
-        mock_api_client.get.assert_called_once_with("/accounts")
+        mock_api_client.get.assert_called_once_with(
+            "/accounts?per_page=5000&no_embed=true"
+        )
 
     @pytest.mark.asyncio
     async def test_get_by_id(
@@ -241,7 +243,9 @@ class TestAccountManager:
         assert account.id == 789
         assert account.handle == "test-account-2"
 
-        mock_api_client.get.assert_called_once_with("/accounts")
+        mock_api_client.get.assert_called_once_with(
+            "/accounts?per_page=5000&no_embed=true"
+        )
 
     @pytest.mark.asyncio
     async def test_get_not_found(
@@ -260,7 +264,9 @@ class TestAccountManager:
 
         assert account is None
 
-        mock_api_client.get.assert_called_once_with("/accounts")
+        mock_api_client.get.assert_called_once_with(
+            "/accounts?per_page=5000&no_embed=true"
+        )
 
     @pytest.mark.asyncio
     async def test_get_by_stack_id(
@@ -285,7 +291,9 @@ class TestAccountManager:
             "test-account-2",
         ]
 
-        mock_api_client.get.assert_called_once_with("/accounts")
+        mock_api_client.get.assert_called_once_with(
+            "/accounts?per_page=5000&no_embed=true"
+        )
 
     @pytest.mark.asyncio
     async def test_get_by_stack_id_not_found(
@@ -304,7 +312,9 @@ class TestAccountManager:
 
         assert len(accounts) == 0
 
-        mock_api_client.get.assert_called_once_with("/accounts")
+        mock_api_client.get.assert_called_once_with(
+            "/accounts?per_page=5000&no_embed=true"
+        )
 
     @pytest.mark.asyncio
     async def test_create(
