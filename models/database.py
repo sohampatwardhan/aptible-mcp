@@ -71,7 +71,7 @@ class DatabaseManager(ResourceManager[Database, str]):
         """
         List available database types.
         """
-        response = self.api_client.get("/database_images")
+        response = await self.api_client.get("/database_images")
         items = response["_embedded"]["database_images"]
         return [DatabaseImage.model_validate(item) for item in items]
 
@@ -107,14 +107,14 @@ class DatabaseManager(ResourceManager[Database, str]):
             "database_image_id": image_id,
             "type": image.type or "postgresql",
         }
-        response = self.api_client.post(f"/accounts/{account_id}/databases", data)
+        response = await self.api_client.post(f"/accounts/{account_id}/databases", data)
         database = self.resource_model.model_validate(response)
 
         operation_data = {"type": "provision"}
-        response = self.api_client.post(
+        response = await self.api_client.post(
             f"/databases/{database.id}/operations", operation_data
         )
-        self.api_client.wait_for_operation(response["id"])
+        await self.api_client.wait_for_operation(response["id"])
 
         return database
 
@@ -139,10 +139,10 @@ class DatabaseManager(ResourceManager[Database, str]):
         if disk_size is not None:
             operation_data["disk_size"] = disk_size
 
-        response = self.api_client.post(
+        response = await self.api_client.post(
             f"/databases/{database_id}/operations", operation_data
         )
-        self.api_client.wait_for_operation(response["id"])
+        await self.api_client.wait_for_operation(response["id"])
 
     async def clone(self, database_id: int, new_handle: str) -> None:
         """
@@ -151,10 +151,10 @@ class DatabaseManager(ResourceManager[Database, str]):
         Callers fetch the newly-created database separately by handle.
         """
         operation_data = {"type": "clone", "handle": new_handle}
-        response = self.api_client.post(
+        response = await self.api_client.post(
             f"/databases/{database_id}/operations", operation_data
         )
-        self.api_client.wait_for_operation(response["id"])
+        await self.api_client.wait_for_operation(response["id"])
 
     async def modify_iops(
         self,
@@ -221,7 +221,7 @@ class DatabaseManager(ResourceManager[Database, str]):
 
     async def rename(self, database_id: int, new_handle: str) -> Database:
         """Rename a database to a new handle."""
-        response = self.api_client.put(
+        response = await self.api_client.put(
             f"/databases/{database_id}", {"handle": new_handle}
         )
         return self.resource_model.model_validate(response)
@@ -255,7 +255,7 @@ class DatabaseManager(ResourceManager[Database, str]):
             raise Exception(f"Database {database_id} not found")
 
         operation_data = {"type": "deprovision"}
-        response = self.api_client.post(
+        response = await self.api_client.post(
             f"/databases/{database.id}/operations", operation_data
         )
-        self.api_client.wait_for_operation(response["id"])
+        await self.api_client.wait_for_operation(response["id"])

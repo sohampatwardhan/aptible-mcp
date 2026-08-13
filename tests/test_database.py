@@ -262,7 +262,7 @@ class TestDatabaseManager:
             sample_operation_response,
         ]
 
-        mock_api_client.wait_for_operation = MagicMock()
+        mock_api_client.wait_for_operation = AsyncMock()
 
         result = await database_manager.create(
             {"handle": handle, "account_id": account_id, "image_id": image_id}
@@ -357,7 +357,7 @@ class TestDatabaseManager:
 
         mock_api_client.post.return_value = sample_operation_response
 
-        mock_api_client.wait_for_operation = MagicMock()
+        mock_api_client.wait_for_operation = AsyncMock()
 
         await database_manager.delete(database.id)
 

@@ -63,7 +63,7 @@ class MaintenanceManager(ResourceManager[MaintenanceEntry, str]):
             ("/maintenances/apps", "apps", "app"),
             ("/maintenances/databases", "databases", "database"),
         ):
-            response = self.api_client.get(f"{path}?per_page=5000&no_embed=true")
+            response = await self.api_client.get(f"{path}?per_page=5000&no_embed=true")
             items = response.get("_embedded", {}).get(embedded_key, [])
             for item in items:
                 entry = self.resource_model.model_validate(

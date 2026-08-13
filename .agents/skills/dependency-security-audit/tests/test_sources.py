@@ -494,6 +494,24 @@ print(json.dumps({{"url": http.url, "packages": [[item.ecosystem, item.name, ite
         self.assertEqual(result.status.state, SourceState.UNAVAILABLE)
         self.assertEqual(result.value, primary)
 
+    def test_nvd_prefetch_batches_ids_and_reuses_the_response(self) -> None:
+        payload = fixture("nvd-cve.json")
+        transport = FakeTransport([response(200, payload)])
+        nvd = NvdClient(RetryingHttpClient(transport))
+
+        nvd.prefetch(["CVE-2025-0001", "CVE-2025-9999"])
+        found = nvd.lookup("CVE-2025-0001")
+        missing = nvd.lookup("CVE-2025-9999")
+
+        self.assertEqual(found.status.state, SourceState.OK)
+        self.assertEqual(missing.status.state, SourceState.OK)
+        self.assertIsNone(missing.value)
+        self.assertEqual(len(transport.requests), 1)
+        self.assertIn(
+            "cveIds=CVE-2025-0001%2CCVE-2025-9999",
+            transport.requests[0][1],
+        )
+
     def test_correlates_only_stable_aliases_not_name_similarity(self) -> None:
         first = OsvClient(RetryingHttpClient(FakeTransport([]))).normalize(
             {"id": "OSV-ONE", "aliases": ["CVE-2025-0001"]}

@@ -196,7 +196,7 @@ class TestVhostManager:
         vhost_manager.get_by_id = AsyncMock(return_value=vhost)
 
         # Mock wait_for_operation method
-        mock_api_client.wait_for_operation = MagicMock()
+        mock_api_client.wait_for_operation = AsyncMock()
 
         # Call the method being tested
         await vhost_manager.delete_vhost(vhost_id)
@@ -244,7 +244,7 @@ class TestVhostManager:
         ]
 
         # Mock the wait_for_operation method
-        mock_api_client.wait_for_operation = MagicMock()
+        mock_api_client.wait_for_operation = AsyncMock()
 
         # Call the method being tested
         result = await vhost_manager.create({"service_id": service_id})
@@ -305,7 +305,7 @@ class TestVhostManager:
             **sample_vhost_data,
             "user_domain": "sub.example.com",
         }
-        mock_api_client.wait_for_operation = MagicMock()
+        mock_api_client.wait_for_operation = AsyncMock()
 
         result = await vhost_manager.create_custom_domain(
             service_id=service_id,
@@ -371,7 +371,7 @@ class TestVhostManager:
             **sample_vhost_data,
             "user_domain": "example.com",
         }
-        mock_api_client.wait_for_operation = MagicMock()
+        mock_api_client.wait_for_operation = AsyncMock()
 
         result = await vhost_manager.create_custom_domain(
             service_id=service_id,
@@ -409,6 +409,61 @@ class TestVhostManager:
         assert "certificate reference" in str(excinfo.value)
 
     @pytest.mark.asyncio
+    async def test_create_custom_domain_tls_success(
+        self,
+        vhost_manager,
+        mock_api_client,
+        sample_vhost_data,
+        sample_operation_response,
+    ):
+        mock_api_client.post.side_effect = [
+            {**sample_vhost_data, "type": "tls", "container_ports": [5432]},
+            sample_operation_response,
+        ]
+        mock_api_client.get.return_value = {
+            **sample_vhost_data,
+            "type": "tls",
+            "container_ports": [5432],
+        }
+
+        result = await vhost_manager.create_custom_domain(
+            service_id=42,
+            domain="db.example.com",
+            managed_tls=False,
+            endpoint_type="tls",
+            certificate_fingerprint="fp12345",
+            container_ports=[5432],
+        )
+
+        assert result.type == "tls"
+        mock_api_client.post.assert_any_call(
+            "/services/42/vhosts",
+            {
+                "service_id": 42,
+                "type": "tls",
+                "platform": "elb",
+                "user_domain": "db.example.com",
+                "acme": False,
+                "certificate_fingerprint": "fp12345",
+                "container_ports": [5432],
+            },
+        )
+
+    @pytest.mark.asyncio
+    async def test_create_custom_domain_rejects_unknown_endpoint_type(
+        self, vhost_manager, mock_api_client
+    ):
+        with pytest.raises(ValueError, match="Unsupported endpoint type"):
+            await vhost_manager.create_custom_domain(
+                service_id=42,
+                domain="sub.example.com",
+                managed_tls=False,
+                endpoint_type="smtp",
+            )
+
+        mock_api_client.post.assert_not_called()
+
+    @pytest.mark.asyncio
     async def test_create_database_endpoint_success(
         self,
         vhost_manager,
@@ -417,16 +472,23 @@ class TestVhostManager:
         sample_operation_response,
     ):
         """
-        Test create_database_endpoint resolves database HAL relation and provisions.
+        Test create_database_endpoint follows database service and vhosts HAL
+        relations, then provisions the endpoint.
         """
         database_id = 10
         mock_api_client.get.side_effect = [
             {
                 "id": database_id,
                 "_links": {
-                    "vhosts": {
-                        "href": f"https://api.aptible.com/databases/{database_id}/vhosts"
+                    "service": {
+                        "href": f"https://api.aptible.com/databases/{database_id}/service"
                     }
+                },
+            },
+            {
+                "id": 20,
+                "_links": {
+                    "vhosts": {"href": "https://api.aptible.com/services/20/vhosts"}
                 },
             },
             sample_vhost_data,
@@ -435,7 +497,7 @@ class TestVhostManager:
             sample_vhost_data,
             sample_operation_response,
         ]
-        mock_api_client.wait_for_operation = MagicMock()
+        mock_api_client.wait_for_operation = AsyncMock()
 
         result = await vhost_manager.create_database_endpoint(
             database_id=database_id,
@@ -445,7 +507,7 @@ class TestVhostManager:
 
         assert isinstance(result, Vhost)
         mock_api_client.post.assert_any_call(
-            f"https://api.aptible.com/databases/{database_id}/vhosts",
+            "https://api.aptible.com/services/20/vhosts",
             {
                 "type": "tcp",
                 "platform": "elb",
@@ -455,13 +517,32 @@ class TestVhostManager:
         )
 
     @pytest.mark.asyncio
-    async def test_create_database_endpoint_requires_hal_relation(
+    async def test_create_database_endpoint_requires_service_relation(
         self,
         vhost_manager,
         mock_api_client,
     ):
         """Reject database resources that do not advertise endpoint creation."""
         mock_api_client.get.return_value = {"id": 10, "_links": {}}
+
+        with pytest.raises(ValueError, match="required service relation"):
+            await vhost_manager.create_database_endpoint(database_id=10)
+
+        mock_api_client.post.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_create_database_endpoint_requires_service_vhosts_relation(
+        self,
+        vhost_manager,
+        mock_api_client,
+    ):
+        mock_api_client.get.side_effect = [
+            {
+                "id": 10,
+                "_links": {"service": {"href": "https://api.aptible.com/services/20"}},
+            },
+            {"id": 20, "_links": {}},
+        ]
 
         with pytest.raises(ValueError, match="required vhosts relation"):
             await vhost_manager.create_database_endpoint(database_id=10)
@@ -501,7 +582,7 @@ class TestVhostManager:
         vhost_id = 1
         mock_api_client.post.return_value = sample_operation_response
         mock_api_client.get.return_value = sample_vhost_data
-        mock_api_client.wait_for_operation = MagicMock()
+        mock_api_client.wait_for_operation = AsyncMock()
 
         result = await vhost_manager.renew(vhost_id)
 

@@ -503,7 +503,10 @@ def collect_inventory(
             statuses.append(SourceStatus("cyclonedx", SourceState.PARTIAL, diagnostic=f"unable to read SBOM: {error}"))
             reasons.append("CycloneDX SBOM could not be parsed")
         else:
-            results.append(parse_cyclonedx(payload))
+            sbom_result = parse_cyclonedx(payload)
+            if sbom_result.complete:
+                return sbom_result
+            results.append(sbom_result)
     adapters = _detected_adapters(root)
     has_go_modules = (root / "go.mod").exists()
     if _has_python_evidence(root) and _project_python(root) is None:

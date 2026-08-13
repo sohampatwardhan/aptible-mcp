@@ -1,4 +1,5 @@
 import pytest
+from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
 from models.backup import Backup, BackupManager
@@ -35,6 +36,15 @@ class TestBackupModel:
         backup = Backup.model_validate({"id": 1, "created_at": "2026-08-01T00:00:00Z"})
         assert backup.database_id is None
 
+    def test_account_id_computed_field(self, sample_backup_data):
+        sample_backup_data["_links"]["account"] = {
+            "href": "https://api.aptible.com/accounts/42"
+        }
+
+        backup = Backup.model_validate(sample_backup_data)
+
+        assert backup.account_id == 42
+
 
 class TestBackupManager:
     @pytest.mark.asyncio
@@ -65,24 +75,35 @@ class TestBackupManager:
     async def test_list_for_database_filters_by_max_age(
         self, backup_manager, mock_api_client
     ):
+        now = datetime(2026, 8, 13, 12, 0, tzinfo=timezone.utc)
         old_backup = {
             "id": 1,
-            "created_at": "2000-01-01T00:00:00+00:00",
+            "created_at": "2026-08-06T11:59:59Z",
             "_links": {"database": {"href": "https://api.aptible.com/databases/99"}},
         }
         recent_backup = {
             "id": 2,
-            "created_at": "2099-01-01T00:00:00+00:00",
+            "created_at": "2026-08-06T08:00:01-04:00",
             "_links": {"database": {"href": "https://api.aptible.com/databases/99"}},
         }
         mock_api_client.get.return_value = {
             "_embedded": {"backups": [old_backup, recent_backup]}
         }
 
+        original = backup_manager._parse_relative_age
+        backup_manager._parse_relative_age = lambda max_age: original(max_age, now)
         backups = await backup_manager.list_for_database(99, max_age="1w")
 
         assert len(backups) == 1
         assert backups[0].id == 2
+
+    def test_parse_relative_age_rejects_naive_reference(self, backup_manager):
+        with pytest.raises(ValueError, match="timezone-aware"):
+            backup_manager._parse_relative_age("1d", datetime(2026, 8, 13))
+
+    def test_parse_timestamp_rejects_missing_timezone(self, backup_manager):
+        with pytest.raises(ValueError, match="must include a timezone"):
+            backup_manager._parse_timestamp("2026-08-13T12:00:00")
 
     @pytest.mark.asyncio
     async def test_list_orphaned(

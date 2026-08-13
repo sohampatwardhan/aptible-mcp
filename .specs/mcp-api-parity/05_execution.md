@@ -6,9 +6,21 @@
 
 ## Active Wave
 
-Executing in local/sequential controller mode — no Orca session or parallel subagent workers are
-configured for this run. One task is implemented, tested, documented, and verified at a time, in
-task-list order, per the loop in `spec-execute`.
+PR release review is complete. All implementation and release-hardening tasks are verified; the
+versioned package is built and GitHub publication is the remaining active step.
+
+```mermaid
+flowchart LR
+    implementation[Implementation and local tests]:::complete --> live[Read-only Aptible contracts]:::complete
+    live --> async[Async HTTP conversion]:::complete
+    async --> security[Release dependency audit]:::complete
+    security --> publish[GitHub release]:::progress
+
+    classDef failed fill:#fecaca,stroke:#dc2626,color:#7f1d1d
+    classDef progress fill:#fde68a,stroke:#d97706,color:#78350f
+    classDef complete fill:#bbf7d0,stroke:#16a34a,color:#14532d
+    classDef pending fill:#e5e7eb,stroke:#6b7280,color:#374151
+```
 
 ## Isolation Note
 
@@ -164,9 +176,10 @@ kanban
 - Tier 1 checkpoint: approved after Tasks 3.1 and 3.2 passed the full local verification suite.
 - Tier 2 checkpoint: approved after Task 5.1 passed the full local verification suite and the
   existing no-argument deploy behavior remained green.
-- Final checkpoint: all 19 tasks and 78 requirement criteria are traced and locally verified.
-  Live Aptible sandbox checks remain explicitly deferred to PR validation because this run had no
-  authorized sandbox environment.
+- Final implementation checkpoint: all 19 tasks and 78 requirement criteria are traced and
+  locally verified. On 2026-08-13, authenticated read-only checks in `thrive-prod` confirmed CA,
+  backup, certificate, maintenance, drain, service-settings, and database endpoint HAL shapes.
+  Restore/clone/replicate request contracts still require a non-production mutation check.
 
 ## Stage 2 Verification
 
@@ -225,11 +238,18 @@ and TOML sorting.
 
 ## Final Verification
 
-All 19 required leaf tasks across eight stages are complete. The final tree passes `git diff
---check`, all 280 tests, mypy across 34 source files, Ruff checks/formatting, and TOML sorting. A
+All 19 required leaf tasks across eight stages are complete. The release-review working tree passes
+`git diff --check`, all 309 application tests, 308 vendored-skill tests (3 skipped), mypy across 36
+source files, Ruff checks/formatting, TOML sorting, MCPB 0.4 validation, and a clean source setup.
+The vendored skills are based on upstream `v1.1.1` and include follow-up release-audit hardening.
+A
 codebase-memory graph index plus an AST comparison confirmed every approved New MCP Tool is
 registered in [`main.py`](../../main.py) and documented in [`README.md`](../../README.md); the
-README inventories all 74 registered tools. No unresolved load-bearing review findings remain.
+README inventories all 74 registered tools. All Aptible HTTP requests and operation polling are
+asynchronous and cancellable. The authenticated release dependency audit passes with a complete
+CycloneDX runtime graph, installed `pip-audit`, batched NVD enrichment, and zero findings. The
+validated `dist/aptible-mcp-0.2.0.mcpb` artifact is ready; no Aptible MCP GitHub release has yet
+been published.
 
 ### Execution Gantt
 

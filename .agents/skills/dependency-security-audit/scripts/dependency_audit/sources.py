@@ -912,6 +912,39 @@ class NvdClient:
     def __init__(self, http: RetryingHttpClient) -> None:
         """Use the common bounded transport policy for NVD availability evidence."""
         self.http = http
+        self._prefetched: dict[str, object] = {}
+        self._prefetch_failure: str | None = None
+
+    def prefetch(self, identifiers: Iterable[str]) -> None:
+        """Batch up to 100 CVE IDs per NVD request to stay below public rate limits."""
+        requested = sorted(
+            {item.strip().upper() for item in identifiers if _CVE.fullmatch(item)}
+        )
+        for offset in range(0, len(requested), 100):
+            batch = requested[offset : offset + 100]
+            try:
+                payload = self.http.request_json(
+                    "GET", f"{self.endpoint}?{urlencode({'cveIds': ','.join(batch)})}"
+                )
+            except HttpRequestError as error:
+                self._prefetch_failure = self.http.last_diagnostic or str(error)
+                raise
+            if not isinstance(payload, Mapping) or not isinstance(
+                payload.get("vulnerabilities"), list
+            ):
+                self._prefetch_failure = "NVD batch response lacks vulnerabilities"
+                raise ValueError("NVD batch response lacks vulnerabilities")
+            entries: dict[str, object] = {}
+            for entry in payload["vulnerabilities"]:
+                record = entry.get("cve") if isinstance(entry, Mapping) else None
+                cve_id = record.get("id") if isinstance(record, Mapping) else None
+                if isinstance(cve_id, str):
+                    entries[cve_id.strip().upper()] = entry
+            for cve in batch:
+                entry = entries.get(cve)
+                self._prefetched[cve] = {
+                    "vulnerabilities": [entry] if entry is not None else []
+                }
 
     def enrich(self, advisory: Advisory, *, package: PackageRef | None = None) -> SourceResult[Advisory]:
         """Add NVD CVE metadata while returning the OSV advisory unchanged on NVD failure."""
@@ -928,10 +961,24 @@ class NvdClient:
         cve = identifier.strip().upper()
         if not _CVE.fullmatch(cve):
             return SourceResult(None, _status("nvd", SourceState.NOT_APPLICABLE, "invalid CVE identifier", self.endpoint))
-        try:
-            payload = self.http.request_json("GET", f"{self.endpoint}?{urlencode({'cveIds': cve})}")
-        except HttpRequestError as error:
-            return SourceResult(None, _status("nvd", SourceState.UNAVAILABLE, self.http.last_diagnostic or str(error), self.endpoint))
+        payload = self._prefetched.get(cve)
+        if payload is None and self._prefetch_failure:
+            return SourceResult(
+                None,
+                _status(
+                    "nvd",
+                    SourceState.UNAVAILABLE,
+                    self._prefetch_failure,
+                    self.endpoint,
+                ),
+            )
+        if payload is None:
+            try:
+                payload = self.http.request_json(
+                    "GET", f"{self.endpoint}?{urlencode({'cveIds': cve})}"
+                )
+            except HttpRequestError as error:
+                return SourceResult(None, _status("nvd", SourceState.UNAVAILABLE, self.http.last_diagnostic or str(error), self.endpoint))
         if not isinstance(payload, Mapping) or not isinstance(payload.get("vulnerabilities"), list):
             return SourceResult(None, _status("nvd", SourceState.PARTIAL, "NVD response lacks vulnerabilities", self.endpoint))
         if not payload["vulnerabilities"]:

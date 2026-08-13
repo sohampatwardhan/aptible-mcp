@@ -1,5 +1,10 @@
+import asyncio
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+import os
+from pathlib import Path
 from mcp.server.fastmcp import FastMCP
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from api_client import AptibleApiClient
 from examples import aptible, github_actions
@@ -20,10 +25,19 @@ from models import (
 )
 from models.service import Service, ServiceManager
 
-mcp = FastMCP("aptible")
-
-
 api_client = AptibleApiClient()
+
+
+@asynccontextmanager
+async def app_lifespan(_: FastMCP) -> AsyncIterator[None]:
+    """Release the shared asynchronous HTTP connection pool on shutdown."""
+    try:
+        yield
+    finally:
+        await api_client.close()
+
+
+mcp = FastMCP("aptible", lifespan=app_lifespan)
 
 
 account_manager = AccountManager(api_client)
@@ -39,6 +53,16 @@ stack_manager = StackManager(api_client)
 service_manager = ServiceManager(api_client)
 vhost_manager = VhostManager(api_client)
 app_manager.service_manager = service_manager
+
+
+DATABASE_DISCOVERY_ATTEMPTS = 10
+DATABASE_DISCOVERY_DELAY_SECONDS = 1.0
+
+
+def _model_int_field(resource: Any, field: str) -> Optional[int]:
+    """Read an integer field, including Pydantic computed fields, safely."""
+    value = resource.model_dump().get(field)
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
 
 
 @mcp.tool()
@@ -356,31 +380,73 @@ async def getDatabase(
     )
 
 
-async def _snapshot_database_ids(database_handle: str) -> set[int]:
-    """Capture existing IDs so post-operation discovery cannot select an old namesake."""
+async def _snapshot_database_ids(database_handle: str, account_id: int) -> set[int]:
+    """Capture same-account IDs so discovery cannot select an old namesake."""
     databases = await database_manager.list()
-    return {database.id for database in databases if database.handle == database_handle}
+    return {
+        database.id
+        for database in databases
+        if database.handle == database_handle
+        and _model_int_field(database, "account_id") == account_id
+    }
 
 
 async def _find_new_database(
     database_handle: str,
     existing_ids: set[int],
-    account_id: Optional[int] = None,
+    account_id: int,
 ) -> Dict[str, Any]:
-    """Find the database created by a completed operation without global-handle ambiguity."""
-    databases = await database_manager.list()
-    matches = [
-        database
-        for database in databases
-        if database.handle == database_handle
-        and database.id not in existing_ids
-        and (account_id is None or database.account_id == account_id)
-    ]
-    if len(matches) != 1:
-        raise Exception(
-            f"Expected one new database with handle {database_handle}, found {len(matches)}."
-        )
-    return matches[0].model_dump()
+    """Reconcile a newly-created database within one account for a bounded time."""
+    last_match_count = 0
+    for attempt in range(DATABASE_DISCOVERY_ATTEMPTS):
+        databases = await database_manager.list()
+        matches = [
+            database
+            for database in databases
+            if database.handle == database_handle
+            and database.id not in existing_ids
+            and _model_int_field(database, "account_id") == account_id
+        ]
+        last_match_count = len(matches)
+        if last_match_count == 1:
+            return matches[0].model_dump()
+        if last_match_count > 1:
+            break
+        if attempt + 1 < DATABASE_DISCOVERY_ATTEMPTS:
+            await asyncio.sleep(DATABASE_DISCOVERY_DELAY_SECONDS)
+
+    raise Exception(
+        f"Expected one new database with handle {database_handle} in account "
+        f"{account_id}, found {last_match_count}."
+    )
+
+
+async def _restore_account_id(
+    backup_id: int, destination_account_id: Optional[int]
+) -> int:
+    """Resolve the restore target before starting its billable operation."""
+    if destination_account_id is not None:
+        return destination_account_id
+
+    backup = await backup_manager.get_by_id(backup_id)
+    if not backup:
+        raise Exception(f"Backup {backup_id} not found.")
+    backup_account_id = _model_int_field(backup, "account_id")
+    if backup_account_id is not None:
+        return backup_account_id
+
+    source_database_id = _model_int_field(backup, "database_id")
+    if source_database_id is not None:
+        source_database = await database_manager.get_by_id(source_database_id)
+        if source_database:
+            source_account_id = _model_int_field(source_database, "account_id")
+            if source_account_id is not None:
+                return source_account_id
+
+    raise ValueError(
+        f"Cannot determine the source account for backup {backup_id}; "
+        "provide destination_account_handle explicitly."
+    )
 
 
 @mcp.tool()
@@ -439,14 +505,17 @@ async def replicateDatabase(
         raise Exception(f"Database {database_handle} not found.")
 
     database = Database.model_validate(database_data)
-    existing_ids = await _snapshot_database_ids(replica_handle)
+    source_account_id = _model_int_field(database, "account_id")
+    if source_account_id is None:
+        raise ValueError(
+            f"Database {database.id} does not expose its account relation."
+        )
+    existing_ids = await _snapshot_database_ids(replica_handle, source_account_id)
     await database_manager.replicate(
         database.id, replica_handle, container_size, disk_size
     )
 
-    return await _find_new_database(
-        replica_handle, existing_ids, database.model_dump().get("account_id")
-    )
+    return await _find_new_database(replica_handle, existing_ids, source_account_id)
 
 
 @mcp.tool()
@@ -465,12 +534,15 @@ async def cloneDatabase(
         raise Exception(f"Database {database_handle} not found.")
 
     database = Database.model_validate(database_data)
-    existing_ids = await _snapshot_database_ids(new_handle)
+    source_account_id = _model_int_field(database, "account_id")
+    if source_account_id is None:
+        raise ValueError(
+            f"Database {database.id} does not expose its account relation."
+        )
+    existing_ids = await _snapshot_database_ids(new_handle, source_account_id)
     await database_manager.clone(database.id, new_handle)
 
-    return await _find_new_database(
-        new_handle, existing_ids, database.model_dump().get("account_id")
-    )
+    return await _find_new_database(new_handle, existing_ids, source_account_id)
 
 
 @mcp.tool()
@@ -637,10 +709,11 @@ async def restoreDatabaseFromBackup(
             raise Exception(f"Account {destination_account_handle} not found.")
         destination_account_id = account["id"]
 
-    existing_ids = await _snapshot_database_ids(new_handle)
+    target_account_id = await _restore_account_id(backup_id, destination_account_id)
+    existing_ids = await _snapshot_database_ids(new_handle, target_account_id)
     await backup_manager.restore(backup_id, new_handle, destination_account_id)
 
-    return await _find_new_database(new_handle, existing_ids, destination_account_id)
+    return await _find_new_database(new_handle, existing_ids, target_account_id)
 
 
 @mcp.tool()
@@ -755,22 +828,54 @@ async def deprovisionMetricDrain(drain_id: int) -> None:
 
 @mcp.tool()
 async def uploadCertificate(
-    account_handle: str, certificate_body: str, private_key: str
+    account_handle: str, certificate_filename: str, private_key_filename: str
 ) -> Dict[str, Any]:
     """
-    Upload a certificate and private key to an environment. There is no
-    separate certificate chain field; concatenate any intermediate
-    certificates into certificate_body. An invalid PEM or mismatched
-    certificate/key pair is rejected by the API.
+    Upload a certificate and private key from files in the trusted directory
+    configured by APTIBLE_MCP_CERTIFICATE_DIR. Only filenames are accepted;
+    paths outside that directory are rejected. Concatenate intermediate
+    certificates into the certificate file because the API has no separate
+    certificate-chain field.
     """
     account = await getAccount(account_handle)
     if not account:
         raise Exception(f"Account {account_handle} not found.")
 
+    certificate_body, private_key = await asyncio.gather(
+        asyncio.to_thread(_read_certificate_file, certificate_filename),
+        asyncio.to_thread(_read_certificate_file, private_key_filename, True),
+    )
     certificate = await certificate_manager.upload(
         account["id"], certificate_body, private_key
     )
     return certificate.model_dump()
+
+
+def _read_certificate_file(filename: str, private: bool = False) -> str:
+    """Read a bounded certificate file from the explicitly trusted directory."""
+    configured_dir = os.environ.get("APTIBLE_MCP_CERTIFICATE_DIR")
+    if not configured_dir:
+        raise RuntimeError(
+            "APTIBLE_MCP_CERTIFICATE_DIR must be set before uploading certificates."
+        )
+
+    trusted_dir = Path(configured_dir).expanduser().resolve(strict=True)
+    file_path = (trusted_dir / filename).resolve(strict=True)
+    try:
+        file_path.relative_to(trusted_dir)
+    except ValueError as exc:
+        raise ValueError(
+            "Certificate filenames must stay within the trusted directory."
+        ) from exc
+    if not file_path.is_file():
+        raise ValueError(f"Certificate file is not a regular file: {filename}")
+    if file_path.stat().st_size > 1024 * 1024:
+        raise ValueError(f"Certificate file exceeds the 1 MiB limit: {filename}")
+    if private and os.name == "posix" and file_path.stat().st_mode & 0o077:
+        raise PermissionError(
+            f"Private key file must not be accessible by group or others: {filename}"
+        )
+    return file_path.read_text(encoding="utf-8")
 
 
 @mcp.tool()
@@ -849,9 +954,9 @@ async def createVhost(
     and not set by the user. The user assigns with process_type in the procfile.
     Since this is being used by AI, that shouldn't matter, though.
 
-    TODO: Add support for database endpoints and custom endpoints.
-          Currently, since there's no tools for handling DNS, we only
-          support creating the default on-aptible.com domains for Services.
+    This tool intentionally creates only a default Aptible-hosted service
+    endpoint. Use createCustomDomainEndpoint, createTypedEndpoint, or
+    createDatabaseEndpoint for other endpoint types.
     """
     app_data = await getApp(app_handle, account_handle)
     if not app_data:
@@ -1023,7 +1128,7 @@ async def createTypedEndpoint(
     app_handle: str,
     service_handle: str,
     domain: str,
-    endpoint_type: str,
+    endpoint_type: Literal["tcp", "tls", "grpc"],
     container_ports: Optional[List[int]] = None,
     certificate_fingerprint: Optional[str] = None,
     account_handle: Optional[str] = None,
@@ -1033,6 +1138,9 @@ async def createTypedEndpoint(
     to the given container ports. A TLS endpoint requires a certificate
     reference (certificate_fingerprint); managed TLS is not used for this tool.
     """
+    if endpoint_type not in {"tcp", "tls", "grpc"}:
+        raise ValueError("endpoint_type must be one of: tcp, tls, grpc")
+
     service_data = await getService(app_handle, service_handle, account_handle)
     service = Service.model_validate(service_data)
 

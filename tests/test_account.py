@@ -327,7 +327,7 @@ class TestAccountManager:
 
         monkeypatch.setattr(account_manager, "stack_manager", mock_stack_manager)
 
-        mock_api_client.organization_id = MagicMock(return_value="org-123")
+        mock_api_client.organization_id = AsyncMock(return_value="org-123")
         mock_api_client.post.return_value = sample_account_data
 
         account = await account_manager.create(
@@ -365,7 +365,7 @@ class TestAccountManager:
 
         monkeypatch.setattr(account_manager, "stack_manager", mock_stack_manager)
 
-        mock_api_client.organization_id = MagicMock(return_value="org-123")
+        mock_api_client.organization_id = AsyncMock(return_value="org-123")
         mock_api_client.post.return_value = sample_account_data
 
         account = await account_manager.create(

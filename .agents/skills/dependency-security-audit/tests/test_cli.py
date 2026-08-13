@@ -99,6 +99,16 @@ class CliTests(unittest.TestCase):
             incomplete_reasons=[] if complete else ["fixture incomplete"],
         )
 
+    def test_default_services_use_a_source_specific_kev_response_bound(self):
+        services = cli._default_services(
+            (), "", "", 5.0, 15.0, self.root, command_runner=lambda *_args: None
+        )
+
+        self.assertEqual(services.osv.http.max_bytes, 1_000_000)
+        self.assertEqual(services.github.http.max_bytes, 1_000_000)
+        self.assertEqual(services.nvd.http.max_bytes, 1_000_000)
+        self.assertEqual(services.kev.http.max_bytes, 5_000_000)
+
     @staticmethod
     def native_inventory(source):
         ecosystem, name, version, purl = {
@@ -410,7 +420,9 @@ class CliTests(unittest.TestCase):
         states = {item.source: item.state for item in native.statuses}
         self.assertEqual(states["pip-audit"], SourceState.OK)
         self.assertEqual(states["npm-audit"], SourceState.NOT_APPLICABLE)
-        self.assertEqual(commands, [("pip-audit", "--format", "json")])
+        self.assertEqual(commands[0][:3], ("pip-audit", "--format", "json"))
+        self.assertEqual(commands[0][-2:], ("--no-deps", "--disable-pip"))
+        self.assertIn("--requirement", commands[0])
 
         missing = cli._default_services(
             (), "", "", 2.5, 4.5, self.root,
@@ -457,7 +469,14 @@ class CliTests(unittest.TestCase):
                                    ("malformed", SourceState.PARTIAL), ("failure", SourceState.UNAVAILABLE)):
                 with self.subTest(source=source, kind=kind):
                     def runner(argv, cwd, timeout, *, selected=source, case=kind):
-                        self.assertEqual(tuple(argv), commands[selected])
+                        if selected == "pip-audit":
+                            self.assertEqual(tuple(argv)[:3], commands[selected])
+                            self.assertEqual(
+                                tuple(argv)[-2:], ("--no-deps", "--disable-pip")
+                            )
+                            self.assertIn("--requirement", argv)
+                        else:
+                            self.assertEqual(tuple(argv), commands[selected])
                         if case == "failure":
                             return CommandResult(tuple(argv), 2, "", "execution failed")
                         if case == "malformed":

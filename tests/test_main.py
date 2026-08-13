@@ -1116,6 +1116,79 @@ async def test_restore_database_from_backup_success(
 
 
 @pytest.mark.asyncio
+async def test_restore_without_destination_scopes_discovery_to_source_account(
+    mock_backup_manager, mock_database_manager
+):
+    backup = Backup(
+        id=1,
+        created_at="2023-01-01T12:00:00Z",
+        links={"account": {"href": "https://api.aptible.com/accounts/321"}},
+    )
+    restored_database = Database.model_validate(
+        _database_payload(2, "restored-db", account_id=321)
+    )
+    foreign_namesake = Database.model_validate(
+        _database_payload(3, "restored-db", account_id=999)
+    )
+    mock_backup_manager.get_by_id = AsyncMock(return_value=backup)
+    mock_backup_manager.restore = AsyncMock()
+    mock_database_manager.list = AsyncMock(
+        side_effect=[[foreign_namesake], [foreign_namesake, restored_database]]
+    )
+
+    result = await restoreDatabaseFromBackup(1, "restored-db")
+
+    mock_backup_manager.get_by_id.assert_awaited_once_with(1)
+    mock_backup_manager.restore.assert_awaited_once_with(1, "restored-db", None)
+    assert result["id"] == 2
+    assert result["account_id"] == 321
+
+
+@pytest.mark.asyncio
+async def test_restore_resolves_source_account_through_backup_database(
+    mock_backup_manager, mock_database_manager
+):
+    backup = Backup(
+        id=1,
+        created_at="2023-01-01T12:00:00Z",
+        links={"database": {"href": "https://api.aptible.com/databases/7"}},
+    )
+    source_database = Database.model_validate(_database_payload(7, "source", 321))
+    restored_database = Database.model_validate(
+        _database_payload(8, "restored-db", account_id=321)
+    )
+    mock_backup_manager.get_by_id = AsyncMock(return_value=backup)
+    mock_backup_manager.restore = AsyncMock()
+    mock_database_manager.get_by_id = AsyncMock(return_value=source_database)
+    mock_database_manager.list = AsyncMock(side_effect=[[], [restored_database]])
+
+    result = await restoreDatabaseFromBackup(1, "restored-db")
+
+    mock_database_manager.get_by_id.assert_awaited_once_with(7)
+    mock_backup_manager.restore.assert_awaited_once_with(1, "restored-db", None)
+    assert result["account_id"] == 321
+
+
+@pytest.mark.asyncio
+async def test_restore_requires_account_scope_before_billed_operation(
+    mock_backup_manager, mock_database_manager
+):
+    backup = Backup(
+        id=1,
+        created_at="2023-01-01T12:00:00Z",
+        links={},
+    )
+    mock_backup_manager.get_by_id = AsyncMock(return_value=backup)
+    mock_backup_manager.restore = AsyncMock()
+
+    with pytest.raises(ValueError, match="provide destination_account_handle"):
+        await restoreDatabaseFromBackup(1, "restored-db")
+
+    mock_backup_manager.restore.assert_not_awaited()
+    mock_database_manager.list.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_restore_database_from_backup_destination_account_not_found():
     """
     Test restore_database_from_backup raises when the destination account is not found.
@@ -1372,7 +1445,9 @@ async def test_deprovision_metric_drain(mock_metric_drain_manager):
 
 
 @pytest.mark.asyncio
-async def test_upload_certificate(mock_certificate_manager, mock_account_manager):
+async def test_upload_certificate(
+    mock_certificate_manager, mock_account_manager, tmp_path, monkeypatch
+):
     """
     Test upload_certificate resolves the account and uploads the certificate.
     """
@@ -1393,7 +1468,16 @@ async def test_upload_certificate(mock_certificate_manager, mock_account_manager
     )
     mock_certificate_manager.upload = AsyncMock(return_value=mock_certificate)
 
-    result = await uploadCertificate("test-account", "cert-body", "private-key")
+    certificate = tmp_path / "certificate.pem"
+    certificate.write_text("cert-body")
+    private_key = tmp_path / "private-key.pem"
+    private_key.write_text("private-key")
+    private_key.chmod(0o600)
+    monkeypatch.setenv("APTIBLE_MCP_CERTIFICATE_DIR", str(tmp_path))
+
+    result = await uploadCertificate(
+        "test-account", "certificate.pem", "private-key.pem"
+    )
 
     mock_certificate_manager.upload.assert_called_once_with(
         123, "cert-body", "private-key"
@@ -1411,9 +1495,30 @@ async def test_upload_certificate_account_not_found(mock_account_manager):
     mock_account_manager.get = AsyncMock(return_value=None)
 
     with pytest.raises(Exception) as excinfo:
-        await uploadCertificate("nonexistent-account", "cert-body", "private-key")
+        await uploadCertificate(
+            "nonexistent-account", "certificate.pem", "private-key.pem"
+        )
 
     assert "Account nonexistent-account not found" in str(excinfo.value)
+
+
+@pytest.mark.asyncio
+async def test_upload_certificate_rejects_path_escape(
+    mock_account_manager, tmp_path, monkeypatch
+):
+    mock_account_manager.get = AsyncMock(
+        return_value=Account(
+            id=123,
+            handle="test-account",
+            created_at="2023-01-01T12:00:00Z",
+            updated_at="2023-01-01T12:00:00Z",
+            links={"stack": {"href": "https://api.aptible.com/stacks/789"}},
+        )
+    )
+    monkeypatch.setenv("APTIBLE_MCP_CERTIFICATE_DIR", str(tmp_path))
+
+    with pytest.raises((FileNotFoundError, ValueError)):
+        await uploadCertificate("test-account", "../certificate.pem", "key.pem")
 
 
 @pytest.mark.asyncio
@@ -2046,6 +2151,19 @@ async def test_create_typed_endpoint_success(mock_vhost_manager):
 
 
 @pytest.mark.asyncio
+async def test_create_typed_endpoint_rejects_unknown_type(mock_vhost_manager):
+    with pytest.raises(ValueError, match="tcp, tls, grpc"):
+        await createTypedEndpoint(
+            "test-app",
+            "web",
+            "endpoint.example.com",
+            "smtp",  # type: ignore[arg-type]
+        )
+
+    mock_vhost_manager.create_custom_domain.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_create_database_endpoint_success(mock_vhost_manager):
     """
     Test createDatabaseEndpoint resolves the database and composes
@@ -2595,12 +2713,19 @@ async def test_replicate_database_success(mock_database_manager):
     existing_namesake = Database.model_validate(
         _database_payload(99, "test-db-replica", account_id=999)
     )
+    existing_same_account = Database.model_validate(
+        _database_payload(98, "test-db-replica", account_id=123)
+    )
 
     mock_database_manager.replicate = AsyncMock()
     mock_database_manager.list = AsyncMock(
         side_effect=[
-            [existing_namesake],
-            [existing_namesake, Database.model_validate(replica_data)],
+            [existing_namesake, existing_same_account],
+            [
+                existing_namesake,
+                existing_same_account,
+                Database.model_validate(replica_data),
+            ],
         ]
     )
 
@@ -2617,6 +2742,23 @@ async def test_replicate_database_success(mock_database_manager):
     mock_get_database.assert_called_once_with("test-db", "test-account")
     assert result["id"] == 2
     assert result["handle"] == "test-db-replica"
+
+
+@pytest.mark.asyncio
+async def test_replicate_database_reconciles_delayed_visibility(mock_database_manager):
+    source_data = _database_payload(1, "test-db")
+    replica = Database.model_validate(_database_payload(2, "replica"))
+    mock_database_manager.replicate = AsyncMock()
+    mock_database_manager.list = AsyncMock(side_effect=[[], [], [replica]])
+
+    with (
+        patch("main.getDatabase", new=AsyncMock(return_value=source_data)),
+        patch("main.asyncio.sleep", new=AsyncMock()) as sleep,
+    ):
+        result = await replicateDatabase("test-db", "replica")
+
+    sleep.assert_awaited_once_with(1.0)
+    assert result["id"] == 2
 
 
 @pytest.mark.asyncio
@@ -2667,18 +2809,21 @@ async def test_clone_database_not_found_after_clone(mock_database_manager):
     the clone operation completes.
     """
     mock_database_manager.clone = AsyncMock()
-    mock_database_manager.list = AsyncMock(side_effect=[[], []])
+    mock_database_manager.list = AsyncMock(return_value=[])
 
-    with patch(
-        "main.getDatabase",
-        new=AsyncMock(return_value=_database_payload(1, "test-db")),
+    with (
+        patch(
+            "main.getDatabase",
+            new=AsyncMock(return_value=_database_payload(1, "test-db")),
+        ),
+        patch("main.asyncio.sleep", new=AsyncMock()) as sleep,
     ):
         with pytest.raises(Exception) as excinfo:
             await cloneDatabase("test-db", "test-db-clone")
 
-    assert "Expected one new database with handle test-db-clone, found 0" in str(
-        excinfo.value
-    )
+    assert "Expected one new database with handle test-db-clone" in str(excinfo.value)
+    assert "in account 123, found 0" in str(excinfo.value)
+    assert sleep.await_count == 9
 
 
 @pytest.mark.asyncio

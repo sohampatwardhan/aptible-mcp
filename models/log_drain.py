@@ -3,6 +3,7 @@ Log Drain model and manager for Aptible log drains.
 """
 
 from typing import Any, List, Optional
+from httpx import HTTPStatusError
 from requests.exceptions import HTTPError
 from pydantic import Field, computed_field
 
@@ -63,7 +64,9 @@ class LogDrainManager(ResourceManager[LogDrain, str]):
             )
 
         payload = {"handle": handle, "drain_type": drain_type, **type_fields}
-        response = self.api_client.post(f"/accounts/{account_id}/log_drains", payload)
+        response = await self.api_client.post(
+            f"/accounts/{account_id}/log_drains", payload
+        )
         drain = self.resource_model.model_validate(response)
 
         refreshed = await self._run_operation(
@@ -81,14 +84,14 @@ class LogDrainManager(ResourceManager[LogDrain, str]):
         collection and filters client-side by the drain's account link.
         """
         try:
-            response = self.api_client.get(
+            response = await self.api_client.get(
                 f"/accounts/{account_id}/log_drains?per_page=5000&no_embed=true"
             )
             if "_embedded" not in response:
                 return []
             items = response["_embedded"][self.resource_name]
             return [self.resource_model.model_validate(item) for item in items]
-        except HTTPError as e:
+        except (HTTPError, HTTPStatusError) as e:
             if e.response is not None and e.response.status_code == 404:
                 all_drains = await self.list()
                 return [drain for drain in all_drains if drain.account_id == account_id]
@@ -108,7 +111,7 @@ class LogDrainManager(ResourceManager[LogDrain, str]):
                 "deprovision",
                 refetch=False,
             )
-        except HTTPError as e:
+        except (HTTPError, HTTPStatusError) as e:
             if e.response is not None and e.response.status_code == 404:
                 raise Exception(f"Log drain {drain_id} not found") from e
             raise

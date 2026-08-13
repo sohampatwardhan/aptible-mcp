@@ -1,23 +1,30 @@
+[dependency-groups]
+dev = [
+  "ipython>=9.4.0",
+  "ruff>=0.12.4,<0.13",
+  "toml-sort>=0.24.2",
+  "mypy>=1.17.0,<2",
+  "pip-audit>=2.9.0",
+  "types-requests>=2.32.4.20250611",
+  "pytest>=8.4.1,<9",
+  "pytest-asyncio>=1.1.0,<2",
+  "pyyaml>=6.0.2",
+  "rust-just>=1.42.3"
+]
+
 [project]
 name = "aptible-mcp"
-version = "0.1.0"
+version = "0.2.0"
 description = "MCP server for Aptible"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-  "ipython>=9.4.0",
-  "mcp[cli]>=1.11.0",
-  "requests>=2.32.4",
+  "mcp[cli]>=1.28.1,<2",
+  "httpx>=0.28.1",
+  "requests>=2.34.2",
   "pydantic>=2.6.0",
-  "pyjwt>=2.10.1",
-  "cryptography>=45.0.5",
-  "ruff>=0.12.4",
-  "toml-sort>=0.24.2",
-  "mypy>=1.17.0",
-  "types-requests>=2.32.4.20250611",
-  "pytest>=8.4.1",
-  "pytest-asyncio>=1.1.0",
-  "rust-just>=1.42.3"
+  "pyjwt>=2.13.0",
+  "cryptography>=50.0.0"
 ]
 
 [tool.ruff]

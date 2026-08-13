@@ -55,7 +55,7 @@ class ServiceManager(ResourceManager[Service, str]):
         """
         List all services for a specific app.
         """
-        response = self.api_client.get(
+        response = await self.api_client.get(
             f"/apps/{app_id}/services?per_page=5000&no_embed=true"
         )
         items = response["_embedded"][self.resource_name]
@@ -91,10 +91,10 @@ class ServiceManager(ResourceManager[Service, str]):
         if container_memory_limit_mb is not None:
             operation_data["container_size"] = container_memory_limit_mb
 
-        response = self.api_client.post(
+        response = await self.api_client.post(
             f"/services/{service_id}/operations", operation_data
         )
-        self.api_client.wait_for_operation(response["id"])
+        await self.api_client.wait_for_operation(response["id"])
 
         refreshed_service = await self.get_by_id(service_id)
         if not refreshed_service:
@@ -127,7 +127,7 @@ class ServiceManager(ResourceManager[Service, str]):
             if key not in _SETTINGS_FIELDS:
                 raise ValueError(f"Unsupported service setting: {key}")
 
-        response = self.api_client.put(f"/services/{service_id}", settings)
+        response = await self.api_client.put(f"/services/{service_id}", settings)
         return self.resource_model.model_validate(response)
 
     async def delete(self, service_id: int) -> None:
@@ -139,7 +139,7 @@ class ServiceManager(ResourceManager[Service, str]):
             raise Exception(f"No service found with id {service_id}")
 
         operation_data = {"type": "deprovision"}
-        response = self.api_client.post(
+        response = await self.api_client.post(
             f"/services/{service_id}/operations", operation_data
         )
-        self.api_client.wait_for_operation(response["id"])
+        await self.api_client.wait_for_operation(response["id"])

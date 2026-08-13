@@ -434,6 +434,26 @@ def _build_findings(
 ) -> tuple[list[Finding], list[SourceStatus]]:
     findings: list[Finding] = []
     statuses: list[SourceStatus] = []
+    if services.nvd is not None:
+        prefetch = getattr(services.nvd, "prefetch", None)
+        if callable(prefetch):
+            cves = {
+                identifier
+                for advisory in advisories
+                for identifier in _stable_ids(advisory)
+                if identifier.startswith("CVE-")
+            }
+            try:
+                prefetch(cves)
+            except Exception as error:
+                statuses.append(
+                    SourceStatus(
+                        "nvd",
+                        SourceState.UNAVAILABLE,
+                        diagnostic="NVD batch enrichment failed: "
+                        f"{redact_diagnostic(error, credential_values)}",
+                    )
+                )
     for package in sorted(packages, key=lambda item: (item.purl, item.ecosystem, item.name, item.version)):
         correlated = correlate_advisories(advisories, package=package)
         for advisory in (

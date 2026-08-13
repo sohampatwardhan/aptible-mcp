@@ -3,6 +3,7 @@ MetricDrain model and MetricDrainManager implementation.
 """
 
 from typing import Any, Dict, List, Optional
+from httpx import HTTPStatusError
 from pydantic import Field, computed_field
 from requests.exceptions import HTTPError
 
@@ -80,7 +81,7 @@ class MetricDrainManager(ResourceManager[MetricDrain, str]):
         if config:
             payload["drain_configuration"] = config
 
-        response = self.api_client.post(
+        response = await self.api_client.post(
             f"/accounts/{account_id}/metric_drains", payload
         )
         drain = self.resource_model.model_validate(response)
@@ -99,14 +100,14 @@ class MetricDrainManager(ResourceManager[MetricDrain, str]):
         GET /metric_drains filtered client-side by account link if nested path 404s.
         """
         try:
-            response = self.api_client.get(
+            response = await self.api_client.get(
                 f"/accounts/{account_id}/metric_drains?per_page=5000&no_embed=true"
             )
             if "_embedded" in response:
                 items = response["_embedded"].get(self.resource_name, [])
                 return [self.resource_model.model_validate(item) for item in items]
             return []
-        except HTTPError as err:
+        except (HTTPError, HTTPStatusError) as err:
             if err.response is not None and err.response.status_code == 404:
                 return await self._list_global_filtered_by_account(account_id)
             raise
@@ -117,7 +118,7 @@ class MetricDrainManager(ResourceManager[MetricDrain, str]):
         """
         Fallback path for listing metric drains by account.
         """
-        response = self.api_client.get(
+        response = await self.api_client.get(
             f"{self.resource_url}?per_page=5000&no_embed=true"
         )
         if "_embedded" not in response:
@@ -137,7 +138,7 @@ class MetricDrainManager(ResourceManager[MetricDrain, str]):
                 "deprovision",
                 refetch=False,
             )
-        except HTTPError as err:
+        except (HTTPError, HTTPStatusError) as err:
             if err.response is not None and err.response.status_code == 404:
                 raise Exception(f"Metric drain {drain_id} not found.") from err
             raise

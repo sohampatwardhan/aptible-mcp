@@ -19,6 +19,7 @@ import os
 from pathlib import Path
 import re
 import sys
+import tempfile
 from typing import Mapping, Sequence, TextIO
 import unicodedata
 from urllib.parse import urlsplit
@@ -248,8 +249,12 @@ def _default_services(
         transport, connect_timeout=connect_timeout, read_timeout=read_timeout,
         secrets=credentials,
     )
+    kev_http = RetryingHttpClient(
+        transport, connect_timeout=connect_timeout, read_timeout=read_timeout,
+        max_bytes=5_000_000, secrets=credentials,
+    )
     return AuditServices(
-        osv=OsvClient(http), kev=KevClient(http),
+        osv=OsvClient(http), kev=KevClient(kev_http),
         github=GithubClient(http), nvd=NvdClient(http),
         native_audits=lambda inventory: _run_native_audits(
             inventory, root, command_runner,
@@ -289,8 +294,27 @@ def _run_native_audits(
             statuses.append(SourceStatus(source, SourceState.NOT_APPLICABLE,
                                          diagnostic="ecosystem not present"))
             continue
+        audit_argv = argv
+        requirements_path: Path | None = None
+        if source == "pip-audit":
+            with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", suffix=".txt", delete=False
+            ) as requirements:
+                requirements.writelines(
+                    f"{package.name}=={package.version}\n"
+                    for package in inventory.packages
+                    if package.ecosystem.casefold() in {"pypi", "pip"}
+                )
+                requirements_path = Path(requirements.name)
+            audit_argv = (
+                *argv,
+                "--requirement",
+                str(requirements_path),
+                "--no-deps",
+                "--disable-pip",
+            )
         try:
-            result = command_runner(argv, root, DEFAULT_COMMAND_TIMEOUT_SECONDS)
+            result = command_runner(audit_argv, root, DEFAULT_COMMAND_TIMEOUT_SECONDS)
         except FileNotFoundError:
             statuses.append(SourceStatus(source, SourceState.UNAVAILABLE,
                                          diagnostic="native audit executable not found"))
@@ -299,6 +323,9 @@ def _run_native_audits(
             statuses.append(SourceStatus(source, SourceState.UNAVAILABLE,
                                          diagnostic=f"native audit failed: {error}"))
             continue
+        finally:
+            if requirements_path is not None:
+                requirements_path.unlink(missing_ok=True)
         if result.returncode not in documented_exits:
             statuses.append(SourceStatus(
                 source, SourceState.UNAVAILABLE,

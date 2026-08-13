@@ -288,7 +288,7 @@ class TestServiceManager:
 
         # Setup mocks
         mock_api_client.post.return_value = sample_operation_response
-        mock_api_client.wait_for_operation = MagicMock()
+        mock_api_client.wait_for_operation = AsyncMock()
 
         # Set up the updated service to return
         updated_service_data = sample_service_data.copy()
@@ -339,7 +339,7 @@ class TestServiceManager:
 
         # Setup mocks
         mock_api_client.post.return_value = sample_operation_response
-        mock_api_client.wait_for_operation = MagicMock()
+        mock_api_client.wait_for_operation = AsyncMock()
 
         # Set up the updated service to return
         updated_service_data = sample_service_data.copy()
@@ -377,7 +377,7 @@ class TestServiceManager:
 
         # Setup mocks
         mock_api_client.post.return_value = sample_operation_response
-        mock_api_client.wait_for_operation = MagicMock()
+        mock_api_client.wait_for_operation = AsyncMock()
 
         # Set up the updated service to return
         updated_service_data = sample_service_data.copy()
@@ -412,7 +412,7 @@ class TestServiceManager:
 
         # Setup mocks
         mock_api_client.post.return_value = sample_operation_response
-        mock_api_client.wait_for_operation = MagicMock()
+        mock_api_client.wait_for_operation = AsyncMock()
         service_manager.get_by_id = AsyncMock(return_value=None)
 
         # Call the method and verify it raises an exception
@@ -440,7 +440,7 @@ class TestServiceManager:
         service_manager.get_by_id = AsyncMock(return_value=service)
 
         mock_api_client.post.return_value = sample_operation_response
-        mock_api_client.wait_for_operation = MagicMock()
+        mock_api_client.wait_for_operation = AsyncMock()
 
         # Call the method being tested
         await service_manager.delete(service_id)

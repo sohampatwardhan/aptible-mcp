@@ -1,0 +1,32 @@
+# Version-control and agent-only material
+.git/
+.github/
+.agents/
+.specs/
+.codebase-memory/
+.security/
+scripts/release-audit.sh
+CLAUDE.md
+
+# Local environments, caches, and generated artifacts
+.venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+**/__pycache__/
+*.py[cod]
+.DS_Store
+build/
+dist/
+wheels/
+*.egg-info/
+*.mcpb
+
+# Development-only files
+tests/
+justfile
+.env
+.env.*
+coverage/
+htmlcov/
+*.log

@@ -3,6 +3,8 @@ from pydantic import Field, computed_field
 
 from models.base import ResourceBase, ResourceManager
 
+VALID_ENDPOINT_TYPES = {"http", "tcp", "tls", "grpc"}
+
 
 class Vhost(ResourceBase):
     """
@@ -66,14 +68,14 @@ class VhostManager(ResourceManager[Vhost, str]):
             "internal": False,
         }
 
-        response = self.api_client.post(f"/services/{service_id}/vhosts", data)
+        response = await self.api_client.post(f"/services/{service_id}/vhosts", data)
         vhost = self.resource_model.model_validate(response)
 
         operation_data = {"type": "provision"}
-        response = self.api_client.post(
+        response = await self.api_client.post(
             f"/vhosts/{vhost.id}/operations", operation_data
         )
-        self.api_client.wait_for_operation(response["id"])
+        await self.api_client.wait_for_operation(response["id"])
 
         return vhost
 
@@ -91,6 +93,11 @@ class VhostManager(ResourceManager[Vhost, str]):
         """
         if not service_id:
             raise ValueError("A service_id is required.")
+        if endpoint_type not in VALID_ENDPOINT_TYPES:
+            raise ValueError(
+                f"Unsupported endpoint type: {endpoint_type}. "
+                f"Supported types: {sorted(VALID_ENDPOINT_TYPES)}"
+            )
 
         if managed_tls:
             clean_domain = domain.strip().lower()
@@ -122,7 +129,7 @@ class VhostManager(ResourceManager[Vhost, str]):
         if container_ports is not None:
             payload["container_ports"] = container_ports
 
-        response = self.api_client.post(f"/services/{service_id}/vhosts", payload)
+        response = await self.api_client.post(f"/services/{service_id}/vhosts", payload)
         vhost = self.resource_model.model_validate(response)
 
         res = await self._run_operation(
@@ -142,16 +149,29 @@ class VhostManager(ResourceManager[Vhost, str]):
         if not database_id:
             raise ValueError("A database_id is required.")
 
-        database_data = self.api_client.get(f"/databases/{database_id}")
-        vhosts_href = None
+        database_data = await self.api_client.get(f"/databases/{database_id}")
+        service_href = None
         if isinstance(database_data, dict):
             links = database_data.get("_links") or database_data.get("links", {})
+            if isinstance(links, dict) and "service" in links:
+                service_href = links["service"].get("href")
+
+        if not service_href:
+            raise ValueError(
+                f"Database {database_id} does not expose the required service relation."
+            )
+
+        service_data = await self.api_client.get(service_href)
+        vhosts_href = None
+        if isinstance(service_data, dict):
+            links = service_data.get("_links") or service_data.get("links", {})
             if isinstance(links, dict) and "vhosts" in links:
                 vhosts_href = links["vhosts"].get("href")
 
         if not vhosts_href:
             raise ValueError(
-                f"Database {database_id} does not expose the required vhosts relation."
+                f"Database service for {database_id} does not expose the required "
+                "vhosts relation."
             )
 
         payload: dict[str, Any] = {
@@ -162,7 +182,7 @@ class VhostManager(ResourceManager[Vhost, str]):
         if ip_whitelist is not None:
             payload["ip_whitelist"] = ip_whitelist
 
-        response = self.api_client.post(vhosts_href, payload)
+        response = await self.api_client.post(vhosts_href, payload)
         vhost = self.resource_model.model_validate(response)
 
         res = await self._run_operation(
@@ -174,7 +194,7 @@ class VhostManager(ResourceManager[Vhost, str]):
         """
         Modify an existing endpoint.
         """
-        response = self.api_client.put(f"/vhosts/{vhost_id}", fields)
+        response = await self.api_client.put(f"/vhosts/{vhost_id}", fields)
         return self.resource_model.model_validate(response)
 
     async def renew(self, vhost_id: int) -> Vhost:
@@ -194,7 +214,7 @@ class VhostManager(ResourceManager[Vhost, str]):
         """
         List all vhosts for a specific service.
         """
-        response = self.api_client.get(
+        response = await self.api_client.get(
             f"/services/{service_id}/vhosts?per_page=5000&no_embed=true"
         )
         items = response["_embedded"][self.resource_name]
@@ -209,7 +229,7 @@ class VhostManager(ResourceManager[Vhost, str]):
             raise Exception(f"No vhost found with id {vhost_id}")
 
         operation_data = {"type": "deprovision"}
-        response = self.api_client.post(
+        response = await self.api_client.post(
             f"/vhosts/{vhost_id}/operations", operation_data
         )
-        self.api_client.wait_for_operation(response["id"])
+        await self.api_client.wait_for_operation(response["id"])

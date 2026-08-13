@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 from models.base import ResourceBase, ResourceManager
 from api_client import AptibleApiClient
@@ -23,6 +23,58 @@ def mock_api_client():
 @pytest.fixture
 def manager(mock_api_client):
     return DummyManager(mock_api_client)
+
+
+@pytest.mark.asyncio
+async def test_list_follows_hal_next_links(manager, mock_api_client):
+    mock_api_client.get.side_effect = [
+        {
+            "_embedded": {"dummies": [{"id": 1, "handle": "first"}]},
+            "_links": {"next": {"href": "/dummies?page=2"}},
+        },
+        {
+            "_embedded": {"dummies": [{"id": 2, "handle": "second"}]},
+            "_links": {},
+        },
+    ]
+
+    resources = await manager.list()
+
+    assert [resource.id for resource in resources] == [1, 2]
+    assert [call.args[0] for call in mock_api_client.get.call_args_list] == [
+        "/dummies?per_page=5000&no_embed=true",
+        "/dummies?page=2",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_list_rejects_pagination_cycles(manager, mock_api_client):
+    mock_api_client.get.return_value = {
+        "_embedded": {"dummies": []},
+        "_links": {"next": {"href": "/dummies?per_page=5000&no_embed=true"}},
+    }
+
+    with pytest.raises(RuntimeError, match="Pagination cycle"):
+        await manager.list()
+
+
+@pytest.mark.asyncio
+async def test_list_does_not_follow_cross_origin_hal_links():
+    client = AptibleApiClient(api_url="https://api.aptible.com")
+    client._token = "test-token"
+    client._http.get = AsyncMock()
+    response = MagicMock()
+    response.json.return_value = {
+        "_embedded": {"dummies": []},
+        "_links": {"next": {"href": "https://attacker.example/dummies?page=2"}},
+    }
+    manager = DummyManager(client)
+
+    client._http.get.return_value = response
+    with pytest.raises(ValueError, match="different origin"):
+        await manager.list()
+
+    client._http.get.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -76,3 +128,13 @@ async def test_run_operation_propagates_failure(manager, mock_api_client):
 
     with pytest.raises(Exception, match="Operation 45 failed: boom"):
         await manager._run_operation(7, "/dummies/7/operations", "restart")
+
+
+@pytest.mark.asyncio
+async def test_run_operation_awaits_non_blocking_polling(manager, mock_api_client):
+    mock_api_client.post.return_value = {"id": 46}
+    mock_api_client.get.return_value = {"id": 7, "handle": "refetched"}
+
+    await manager._run_operation(7, "/dummies/7/operations", "restart")
+
+    mock_api_client.wait_for_operation.assert_awaited_once_with(46)

@@ -65,7 +65,7 @@ class AppManager(ResourceManager[App, str]):
             raise Exception("An account_id is required.")
         docker_image = data.get("docker_image")
 
-        response = self.api_client.post(f"/accounts/{account_id}/apps", data)
+        response = await self.api_client.post(f"/accounts/{account_id}/apps", data)
         app = self.resource_model.model_validate(response)
 
         if docker_image:
@@ -83,8 +83,10 @@ class AppManager(ResourceManager[App, str]):
         Configure an app with environment variables.
         """
         operation_data = {"type": "configure", "env": env}
-        response = self.api_client.post(f"/apps/{app_id}/operations", operation_data)
-        self.api_client.wait_for_operation(response["id"])
+        response = await self.api_client.post(
+            f"/apps/{app_id}/operations", operation_data
+        )
+        await self.api_client.wait_for_operation(response["id"])
 
     async def deploy(
         self,
@@ -116,7 +118,7 @@ class AppManager(ResourceManager[App, str]):
         """
         Rename an app to a new handle.
         """
-        response = self.api_client.put(f"/apps/{app_id}", {"handle": new_handle})
+        response = await self.api_client.put(f"/apps/{app_id}", {"handle": new_handle})
         return self.resource_model.model_validate(response)
 
     async def rebuild(self, app_id: int) -> App:
@@ -149,14 +151,16 @@ class AppManager(ResourceManager[App, str]):
             "command": command,
             "interactive": interactive,
         }
-        response = self.api_client.post(f"/apps/{app_id}/operations", operation_data)
+        response = await self.api_client.post(
+            f"/apps/{app_id}/operations", operation_data
+        )
         op_id = response["id"]
 
         from models.operation import OperationManager
 
         op_manager = OperationManager(self.api_client)
         try:
-            self.api_client.wait_for_operation(op_id)
+            await self.api_client.wait_for_operation(op_id)
         except Exception as e:
             logs = await op_manager.logs(op_id)
             if logs:
@@ -173,5 +177,7 @@ class AppManager(ResourceManager[App, str]):
             raise Exception(f"App {app_id} not found")
 
         operation_data = {"type": "deprovision"}
-        response = self.api_client.post(f"/apps/{app.id}/operations", operation_data)
-        self.api_client.wait_for_operation(response["id"])
+        response = await self.api_client.post(
+            f"/apps/{app.id}/operations", operation_data
+        )
+        await self.api_client.wait_for_operation(response["id"])

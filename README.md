@@ -56,14 +56,50 @@ This project provides MCP tools for interacting with the Aptible API. It uses Py
   `getDatabaseProvisionExample`, `getDatabaseDeprovisionExample`, `getDatabaseRestoreExample`,
   `getBuildDeployExample`
 
+## Install
+
+### Desktop extension (`.mcpb`)
+
+Download `aptible-mcp-0.2.0.mcpb` from the GitHub release, then open it with an MCPB-compatible
+desktop client. During installation, you can provide an Aptible access token. If you leave the
+token blank, the server uses the credentials from an existing Aptible CLI login at
+`~/.aptible/tokens.json`.
+
+The bundle uses the MCPB 0.4 `uv` runtime and requires Python 3.13 or newer. The desktop client
+manages the extracted bundle and starts `main.py` over stdio.
+
+If you plan to use `uploadCertificate`, select a trusted certificate directory during MCPB setup.
+The tool accepts filenames from that directory, never certificate or private-key contents as model
+inputs. On POSIX systems, private-key files must have owner-only permissions (for example,
+`chmod 600 private-key.pem`). Source installs should set `APTIBLE_MCP_CERTIFICATE_DIR` to the same
+kind of trusted directory.
+
+### From source
+
+Install [uv](https://docs.astral.sh/uv/), clone this repository, and run the setup script:
+
+```bash
+git clone https://github.com/aptible/aptible-mcp.git
+cd aptible-mcp
+./scripts/setup.sh
+```
+
+The script synchronizes the checked-in lockfile with `uv sync --locked`, verifies that the server
+imports successfully, and reports whether Aptible authentication is available. It does not install
+system software, modify shell profiles, or print credentials.
+
+Authenticate either by logging in with the Aptible CLI or by setting `APTIBLE_TOKEN` in the server
+environment.
+
 ## Usage
 
-This MCP server assumes you are currently logged in via the [Aptible CLI](https://www.aptible.com/docs/reference/aptible-cli/overview). This README also assumes you have [uv](https://docs.astral.sh/uv/) and [just](https://github.com/casey/just) installed, which you can do using Homebrew by running `brew install uv just`.
+This MCP server assumes you are authenticated with `APTIBLE_TOKEN` or are currently logged in via
+the [Aptible CLI](https://www.aptible.com/docs/reference/aptible-cli/overview).
 
 Once logged in via the Aptible CLI, start the MCP server with:
 
 ```bash
-uv run python main.py
+uv run --locked --no-dev python main.py
 ```
 
 Or add the MCP server to your client config:
@@ -74,9 +110,12 @@ Or add the MCP server to your client config:
     "aptible": {
       "command": "uv",
       "args": [
+        "run",
         "--directory",
         "/path/to/aptible-mcp",
-        "run",
+        "--frozen",
+        "--no-dev",
+        "python",
         "main.py"
       ]
     }
@@ -84,7 +123,26 @@ Or add the MCP server to your client config:
 }
 ```
 
-To determine where this configuration should live, reference the documentation for your MCP Client. For reference, Claude Desktop stores [its configuration](https://modelcontextprotocol.io/docs/develop/connect-local-servers) in `~/Library/Application Support/Claude/claude_desktop_config.json` on MacOS and `%APPDATA%\Claude\claude_desktop_config.json` on Windows. Claude Code stores [its configuration](https://code.claude.com/docs/en/settings) in `~/.claude.json`.
+To determine where this configuration should live, reference the documentation for your MCP
+client. For reference, Claude Desktop stores its configuration in
+`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS and
+`%APPDATA%\Claude\claude_desktop_config.json` on Windows. Claude Code stores its configuration in
+`~/.claude.json`.
+
+## Build the MCPB package
+
+Install the official MCPB CLI, validate the 0.4 manifest, and pack the repository:
+
+```bash
+npm install -g @anthropic-ai/mcpb
+mcpb validate .
+mcpb pack . aptible-mcp-0.2.0.mcpb
+```
+
+`.mcpbignore` excludes tests, local environments, caches, agent/spec artifacts, and secrets from
+the release archive. Before publishing, inspect the archive listing printed by `mcpb pack` and
+confirm that it contains `manifest.json`, `pyproject.toml`, `uv.lock`, `main.py`, `api_client.py`,
+`models/`, `examples/`, and `scripts/setup.sh`.
 
 ## Testing
 
@@ -97,6 +155,19 @@ just typecheck
 
 just lint
 ```
+
+Before a release, run the complete dependency gate:
+
+```bash
+gh auth login
+just security-audit
+```
+
+The command exports the locked runtime graph as CycloneDX, runs the installed `pip-audit`, uses
+the authenticated GitHub advisory API without exposing the token on the command line, and batches
+NVD CVE lookups (up to 100 IDs per request) so the public NVD rate limit is respected. If you have
+an NVD API key, set `NVD_API_KEY`; the audit also works without one. Reports are written under
+`.security/dependency-audit/` and are excluded from packages and Git.
 
 
 ## Resource Models

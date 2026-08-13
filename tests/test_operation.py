@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import MagicMock, AsyncMock, call
 
 from models.operation import Operation, OperationManager
 from api_client import AptibleApiClient
@@ -26,6 +26,31 @@ def _operation_data(status, operation_id=1):
 
 
 class TestOperationManager:
+    @pytest.mark.asyncio
+    async def test_logs_apply_timeouts_to_api_and_signed_url_requests(
+        self, operation_manager, mock_api_client
+    ):
+        mock_api_client.get_text.side_effect = [
+            "https://logs.example/signed",
+            "operation output",
+        ]
+
+        result = await operation_manager.logs(123)
+
+        assert result == "operation output"
+        assert mock_api_client.get_text.call_args_list == [
+            call("/operations/123/logs"),
+            call("https://logs.example/signed", authenticated=False),
+        ]
+
+    def test_operation_defaults_missing_status_to_unknown(self):
+        data = _operation_data("queued")
+        del data["status"]
+
+        operation = Operation.model_validate(data)
+
+        assert operation.status == "unknown"
+
     @pytest.mark.asyncio
     async def test_cancel_running_operation(self, operation_manager, mock_api_client):
         running = Operation.model_validate(_operation_data("running"))

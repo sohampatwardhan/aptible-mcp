@@ -36,7 +36,7 @@ class CertificateManager(ResourceManager[Certificate, str]):
         mismatched key pair surfaces as an HTTPError from the API; this
         method does not attempt client-side PEM/key-pair validation.
         """
-        response = self.api_client.post(
+        response = await self.api_client.post(
             f"/accounts/{account_id}/certificates",
             {"certificate_body": certificate_body, "private_key": private_key},
         )
@@ -46,7 +46,7 @@ class CertificateManager(ResourceManager[Certificate, str]):
         """
         List certificates uploaded to an environment.
         """
-        response = self.api_client.get(
+        response = await self.api_client.get(
             f"/accounts/{account_id}/certificates?per_page=5000&no_embed=true"
         )
         if "_embedded" not in response:
