@@ -1,20 +1,29 @@
 # Aptible MCP
 
-An MCP server for [Aptible](https://www.aptible.com).
+An MCP server for managing [Aptible](https://www.aptible.com) resources through the Model Context
+Protocol.
 
-> [!NOTE]
-> This MCP server is still under development.
+> [!IMPORTANT]
+> **Current release: [v0.2.0](https://github.com/sohampatwardhan/aptible-mcp/releases/tag/v0.2.0).**
+> The server implements feature-complete Deploy API parity across the supported resource groups
+> below. Mutating tools can create, resize, restart, or delete billable infrastructure, so review
+> tool arguments and the target environment before approving a call.
 
 ## Overview
 
-This project provides MCP tools for interacting with the Aptible API. It uses Pydantic models for standardized data handling and provides consistent CRUD operations for Aptible resources.
+This project exposes 74 MCP tools for inspecting and operating Aptible environments, apps,
+databases, backups, endpoints, drains, certificates, services, maintenance entries, and operations.
+It uses typed Pydantic models, an asynchronous HTTP client, bounded and cancellable operation
+polling, and same-origin validation for authenticated Aptible API links.
 
 ## Features
 
-- Standardized models for Aptible resources (Account, App, Database, etc.)
-- Consistent CRUD operations across resource types
-- Pydantic validation for request/response data
-- Type hints for better developer experience
+- Deploy API coverage across all resource groups listed in [Tools](#tools)
+- Non-blocking HTTP, pagination, operation polling, and operation-log retrieval
+- Account-scoped reconciliation for database clone, replication, and restore operations
+- Same-origin credential protection and trusted-file handling for certificate private keys
+- Locked, reproducible source installation and a packaged MCPB desktop extension
+- Release dependency auditing with CycloneDX, OSV, CISA KEV, GitHub, NVD, and `pip-audit`
 
 ## Structure
 
@@ -60,7 +69,8 @@ This project provides MCP tools for interacting with the Aptible API. It uses Py
 
 ### Desktop extension (`.mcpb`)
 
-Download `aptible-mcp-0.2.0.mcpb` from the GitHub release, then open it with an MCPB-compatible
+Download `aptible-mcp-0.2.0.mcpb` from the
+[v0.2.0 GitHub release](https://github.com/sohampatwardhan/aptible-mcp/releases/tag/v0.2.0), then open it with an MCPB-compatible
 desktop client. During installation, you can provide an Aptible access token. If you leave the
 token blank, the server uses the credentials from an existing Aptible CLI login at
 `~/.aptible/tokens.json`.
@@ -79,7 +89,7 @@ kind of trusted directory.
 Install [uv](https://docs.astral.sh/uv/), clone this repository, and run the setup script:
 
 ```bash
-git clone https://github.com/aptible/aptible-mcp.git
+git clone https://github.com/sohampatwardhan/aptible-mcp.git
 cd aptible-mcp
 ./scripts/setup.sh
 ```
