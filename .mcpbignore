@@ -9,7 +9,7 @@ scripts/release-audit.sh
 CLAUDE.md
 
 # Local environments, caches, and generated artifacts
-.venv/
+.venv*/
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/

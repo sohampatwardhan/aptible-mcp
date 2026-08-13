@@ -4,7 +4,7 @@ An MCP server for managing [Aptible](https://www.aptible.com) resources through 
 Protocol.
 
 > [!IMPORTANT]
-> **Current release: [v0.2.0](https://github.com/sohampatwardhan/aptible-mcp/releases/tag/v0.2.0).**
+> **Current release: [v0.2.1](https://github.com/sohampatwardhan/aptible-mcp/releases/tag/v0.2.1).**
 > The server implements feature-complete Deploy API parity across the supported resource groups
 > below. Mutating tools can create, resize, restart, or delete billable infrastructure, so review
 > tool arguments and the target environment before approving a call.
@@ -69,8 +69,8 @@ polling, and same-origin validation for authenticated Aptible API links.
 
 ### Desktop extension (`.mcpb`)
 
-Download `aptible-mcp-0.2.0.mcpb` from the
-[v0.2.0 GitHub release](https://github.com/sohampatwardhan/aptible-mcp/releases/tag/v0.2.0), then open it with an MCPB-compatible
+Download `aptible-mcp-0.2.1.mcpb` from the
+[v0.2.1 GitHub release](https://github.com/sohampatwardhan/aptible-mcp/releases/tag/v0.2.1), then open it with an MCPB-compatible
 desktop client. During installation, you can provide an Aptible access token. If you leave the
 token blank, the server uses the credentials from an existing Aptible CLI login at
 `~/.aptible/tokens.json`.
@@ -93,6 +93,10 @@ git clone https://github.com/sohampatwardhan/aptible-mcp.git
 cd aptible-mcp
 ./scripts/setup.sh
 ```
+
+The setup script detects package metadata corruption from an interrupted or older environment. It
+moves an affected `.venv` to a timestamped `.venv.corrupt.*` backup and lets `uv` build a clean
+replacement. After confirming the replacement works, you can remove that backup manually.
 
 The script synchronizes the checked-in lockfile with `uv sync --locked`, verifies that the server
 imports successfully, and reports whether Aptible authentication is available. It does not install
@@ -146,7 +150,7 @@ Install the official MCPB CLI, validate the 0.4 manifest, and pack the repositor
 ```bash
 npm install -g @anthropic-ai/mcpb
 mcpb validate .
-mcpb pack . aptible-mcp-0.2.0.mcpb
+mcpb pack . aptible-mcp-0.2.1.mcpb
 ```
 
 `.mcpbignore` excludes tests, local environments, caches, agent/spec artifacts, and secrets from
