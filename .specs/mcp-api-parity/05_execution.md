@@ -220,6 +220,7 @@ and TOML sorting.
 - Result: implementation committed on `feature/mcp-api-parity`; push and PR creation are the
   selected delivery path, with no local merge or deployment authorized
 - Commits: `2e3ed1e` (spec-driven skills v1.1.0), `3d75594` (API parity implementation)
+- Pull request: [#1 — feat: complete Aptible MCP API parity](https://github.com/sohampatwardhan/aptible-mcp/pull/1)
 - Post-integration verification: required only if the user selects local merge
 
 ## Final Verification

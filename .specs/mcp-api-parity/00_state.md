@@ -31,3 +31,6 @@
   had been performed at completion time.
 - 2026-08-13: User selected a push and pull request against `main`; local commits prepared with
   deployment and worktree cleanup explicitly out of scope.
+- 2026-08-13: Pushed `feature/mcp-api-parity` and opened
+  [PR #1](https://github.com/sohampatwardhan/aptible-mcp/pull/1) against `main`; branch/worktrees
+  preserved for review iteration.
