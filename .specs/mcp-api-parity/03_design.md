@@ -262,7 +262,7 @@ Not-found handling (R1.3, R2.3, R3.3) happens at the MCP tool layer exactly like
 `getDatabase`/`getApp` already raise before calling the manager when a handle doesn't resolve; new
 tools follow the same guard.
 
-### `LogDrainManager` / `MetricDrainManager` (new, `models/log_drain.py`, `models/metric_drain.py`)
+### `LogDrainManager` / `MetricDrainManager` (new, [`models/log_drain.py`](../../models/log_drain.py), [`models/metric_drain.py`](../../models/metric_drain.py))
 
 Both follow the identical two-step create pattern:
 

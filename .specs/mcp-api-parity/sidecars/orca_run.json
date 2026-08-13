@@ -1,0 +1,106 @@
+{
+  "coordinator_handle": "coordinator",
+  "decision_gates": [],
+  "dispatches": [
+    {
+      "agent": "claude",
+      "dispatch_id": "ctx_8bc873d60b2b",
+      "effort": "medium",
+      "model": "claude-sonnet-5",
+      "orca_task_id": "task_69f3833491e0",
+      "status": "dispatched",
+      "task_id": "3.1",
+      "worker_handle": "term_d9e864a1-62ec-4757-b378-3a3fc039aa8e",
+      "worktree_path": "current"
+    },
+    {
+      "agent": "agy",
+      "dispatch_id": "ctx_b40506cadcc7",
+      "effort": "medium",
+      "orca_task_id": "task_aaffd00379d3",
+      "status": "dispatched",
+      "task_id": "3.2",
+      "worker_handle": "term_508c80f5-7a97-44f3-916b-7945caf4d4f8",
+      "worktree_path": "current"
+    },
+    {
+      "agent": "claude",
+      "dispatch_id": "ctx_0c136aec989b",
+      "effort": "medium",
+      "model": "claude-sonnet-5",
+      "orca_task_id": "task_aaffd00379d3",
+      "status": "dispatched",
+      "task_id": "3.2",
+      "worker_handle": "term_df046451-a925-4f2a-8103-ee7b14d6e734",
+      "worktree_path": "current"
+    },
+    {
+      "agent": "claude",
+      "dispatch_id": "ctx_1a87c3f91962",
+      "effort": "medium",
+      "model": "claude-sonnet-5",
+      "orca_task_id": "task_671b169d0aee",
+      "status": "dispatched",
+      "task_id": "5.1",
+      "worker_handle": "term_7fed51f0-6000-4e52-bdc1-0b919095a95f",
+      "worktree_path": "current"
+    },
+    {
+      "agent": "claude",
+      "dispatch_id": "ctx_53283b332a50",
+      "effort": "high",
+      "model": "claude-opus-5",
+      "orca_task_id": "task_eecceb457fa9",
+      "status": "dispatched",
+      "task_id": "7.1",
+      "worker_handle": "term_c79f4010-6c23-42bd-89f6-b165b8c04eaa",
+      "worktree_path": "current"
+    },
+    {
+      "agent": "claude",
+      "dispatch_id": "ctx_fef2f8e067ab",
+      "effort": "medium",
+      "model": "claude-sonnet-5",
+      "orca_task_id": "task_99e0416d2316",
+      "status": "dispatched",
+      "task_id": "8.1",
+      "worker_handle": "term_0cea0236-9a3e-4c60-a35a-e20561fd5e38",
+      "worktree_path": "current"
+    }
+  ],
+  "feature_slug": "mcp-api-parity",
+  "run_id": "run_c66fd333477d",
+  "schema_version": 1,
+  "stage_tasks_map": {
+    "1": "task_ba991a52b274",
+    "2": "task_53c04ef22cb2",
+    "3": "task_a6aeddc00130",
+    "4": "task_836cba625179",
+    "5": "task_36ade6bd9c93",
+    "6": "task_ee3c6a98ff62",
+    "7": "task_f5e40f956c62",
+    "8": "task_180c34aa69dc"
+  },
+  "status": "active",
+  "tasks_map": {
+    "1.1": "task_efd4aa1730c4",
+    "1.2": "task_985665d9eeee",
+    "1.3": "task_2f92b5d0c84a",
+    "1.4": "task_258491b6915e",
+    "1.5": "task_4e962a453c9f",
+    "1.6": "task_99a3bbbfcc70",
+    "1.7": "task_27f51cd8b410",
+    "2.1": "task_cf88a2eb53fe",
+    "2.2": "task_2da95943a441",
+    "2.3": "task_420d9c60ef37",
+    "2.4": "task_6ba0ff436ba4",
+    "2.5": "task_1c961bfcbbca",
+    "3.1": "task_69f3833491e0",
+    "3.2": "task_aaffd00379d3",
+    "4.1": "task_0d9bf4151b3a",
+    "5.1": "task_671b169d0aee",
+    "6.1": "task_8ec76b4b7ea0",
+    "7.1": "task_eecceb457fa9",
+    "8.1": "task_99e0416d2316"
+  }
+}

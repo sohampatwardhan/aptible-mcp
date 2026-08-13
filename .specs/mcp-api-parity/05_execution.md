@@ -67,6 +67,13 @@ requirement/behavior changes.
 
 ## Recovery
 
+- 2026-08-13 Stage 2 integration verification first invoked bare `pytest`, `ruff`, and `mypy`.
+  The attempt failed at the environment boundary before testing code: the system interpreter did
+  not include the project root, and the lint/typecheck executables are installed only in the
+  repository's `uv` environment. Root-cause hypothesis: bypassing the canonical `just` recipes
+  selected the wrong environment; rerunning `just test`, `just typecheck`, and `just lint` will
+  disprove it if any equivalent import/tool-resolution failure remains.
+
 The local session that ran `run-20260812T173015Z` was lost (no surviving Claude Code transcript
 for it — confirmed by searching all local session logs for this repository). Reconciled state from
 the durable artifacts instead: working tree matches this ledger's task 1.1/1.2 file list exactly
@@ -99,19 +106,6 @@ resuming at task 1.3.
 
 ```mermaid
 kanban
-  pending[Pending]
-    t_kanban_2_1[⚪ 2.1: Add LogDrain model and LogDrainManager]
-    t_kanban_2_2[⚪ 2.2: Add MetricDrain model and MetricDrainManager]
-    t_kanban_2_3[⚪ 2.3: Extend Vhost custom domains, TLS, endpoint types]
-    t_kanban_2_4[⚪ 2.4: Extend AppManager rename, deploy, rebuild, restart, run]
-    t_kanban_2_5[⚪ 2.5: Extend DatabaseManager replicate, clone, resize, rename]
-    t_kanban_3_1[⚪ 3.1: Add Tier 1 tools backups, drains, certificates]
-    t_kanban_3_2[⚪ 3.2: Add Tier 1 MCP tools for endpoints]
-    t_kanban_4_1[⚪ 4.1: Review Tier 1 before starting Tier 2]
-    t_kanban_5_1[⚪ 5.1: Add Tier 2 MCP tools]
-    t_kanban_6_1[⚪ 6.1: Review Tier 2 before starting Tier 3]
-    t_kanban_7_1[⚪ 7.1: Add Tier 3 MCP tools]
-    t_kanban_8_1[⚪ 8.1: Final verification, traceability check, README update]
   done[Done]
     t_kanban_1_1[🟢 1.1: Add the shared _run_operation helper to ResourceManager]
     t_kanban_1_2[🟢 1.2: Add Backup model and BackupManager]
@@ -120,12 +114,25 @@ kanban
     t_kanban_1_5[🟢 1.5: Add service settings methods to ServiceManager]
     t_kanban_1_6[🟢 1.6: Add cancel to OperationManager]
     t_kanban_1_7[🟢 1.7: Add rename and CA-certificate read to AccountManager]
+    t_kanban_2_1[🟢 2.1: Add LogDrain model and LogDrainManager]
+    t_kanban_2_2[🟢 2.2: Add MetricDrain model and MetricDrainManager]
+    t_kanban_2_3[🟢 2.3: Extend Vhost custom domains, TLS, endpoint types]
+    t_kanban_2_4[🟢 2.4: Extend AppManager rename, deploy, rebuild, restart, run]
+    t_kanban_2_5[🟢 2.5: Extend DatabaseManager replicate, clone, resize, rename]
+    t_kanban_3_1[🟢 3.1: Add Tier 1 tools backups, drains, certificates]
+    t_kanban_3_2[🟢 3.2: Add Tier 1 MCP tools for endpoints]
+    t_kanban_4_1[🟢 4.1: Review Tier 1 before starting Tier 2]
+    t_kanban_5_1[🟢 5.1: Add Tier 2 MCP tools]
+    t_kanban_6_1[🟢 6.1: Review Tier 2 before starting Tier 3]
+    t_kanban_7_1[🟢 7.1: Add Tier 3 MCP tools]
+    t_kanban_8_1[🟢 8.1: Final verification, traceability check, README update]
 ```
 ### Run Intervals
 | Run ID | Started UTC | Stopped UTC | Elapsed Seconds | Outcome |
 |---|---|---|---:|---|
 | run-20260812T173015Z | 2026-08-12T17:30:15Z | unknown | unknown | interrupted |
-| run-20260812T201522Z | 2026-08-12T20:15:22Z | pending | pending | active |
+| run-20260812T201522Z | 2026-08-12T20:15:22Z | unknown | unknown | interrupted |
+| run-20260813T174410Z | 2026-08-13T17:44:10Z | 2026-08-13T18:13:04Z | 1734 | complete |
 
 ### Task Attempt Intervals
 | Run ID | Stage/Wave | Task | Attempt | Started UTC | Stopped UTC | Elapsed Seconds | Outcome |
@@ -137,17 +144,91 @@ kanban
 | run-20260812T201522Z | Stage 1 | 1.5 | 1 | 2026-08-12T20:31:16Z | 2026-08-12T20:32:30Z | 74 | verified |
 | run-20260812T201522Z | Stage 1 | 1.6 | 1 | 2026-08-12T20:32:46Z | 2026-08-12T20:34:03Z | 77 | verified |
 | run-20260812T201522Z | Stage 1 | 1.7 | 1 | 2026-08-12T20:34:16Z | 2026-08-12T20:35:34Z | 78 | verified |
+| run-20260812T201522Z | Stage 2 | 2.3 | 1 | 2026-08-12T20:51:50Z | 2026-08-12T20:56:06Z | 256 | verified |
+| run-20260812T201522Z | Stage 2 | 2.4 | 1 | 2026-08-12T20:51:44Z | 2026-08-12T20:56:36Z | 292 | verified |
+| run-20260812T201522Z | Stage 2 | 2.5 | 1 | 2026-08-12T20:49:51Z | unknown | unknown | interrupted |
+| run-20260813T174410Z | Stage 2 integration | 2.1 | 1 | 2026-08-13T17:44:10Z | 2026-08-13T17:46:14Z | 124 | verified |
+| run-20260813T174410Z | Stage 2 integration | 2.2 | 1 | 2026-08-13T17:44:10Z | 2026-08-13T17:46:14Z | 124 | verified |
+| run-20260813T174410Z | Stage 2 verification | 2.5 | 2 | 2026-08-13T17:44:10Z | 2026-08-13T17:46:14Z | 124 | verified |
+| run-20260813T174410Z | Stage 3 serial | 3.1 | 1 | 2026-08-13T17:48:17Z | 2026-08-13T17:52:56Z | 279 | verified |
+| run-20260813T174410Z | Stage 3 serial | 3.2 | 1 | 2026-08-13T17:54:15Z | 2026-08-13T17:56:08Z | 113 | failed: Antigravity authentication unavailable |
+| run-20260813T174410Z | Stage 3 serial | 3.2 | 2 | 2026-08-13T17:56:08Z | 2026-08-13T17:59:40Z | 212 | verified |
+| run-20260813T174410Z | Stage 4 checkpoint | 4.1 | 1 | 2026-08-13T17:59:40Z | 2026-08-13T17:59:40Z | 0 | verified |
+| run-20260813T174410Z | Stage 5 serial | 5.1 | 1 | 2026-08-13T18:00:11Z | 2026-08-13T18:04:20Z | 249 | verified |
+| run-20260813T174410Z | Stage 6 checkpoint | 6.1 | 1 | 2026-08-13T18:04:20Z | 2026-08-13T18:04:20Z | 0 | verified |
+| run-20260813T174410Z | Stage 7 serial | 7.1 | 1 | 2026-08-13T18:05:11Z | 2026-08-13T18:09:23Z | 252 | verified |
+| run-20260813T174410Z | Stage 8 final | 8.1 | 1 | 2026-08-13T18:10:04Z | 2026-08-13T18:13:04Z | 180 | verified |
 
 ## Checkpoints
 
-- (none reached yet)
+- Tier 1 checkpoint: approved after Tasks 3.1 and 3.2 passed the full local verification suite.
+- Tier 2 checkpoint: approved after Task 5.1 passed the full local verification suite and the
+  existing no-argument deploy behavior remained green.
+- Final checkpoint: all 19 tasks and 78 requirement criteria are traced and locally verified.
+  Live Aptible sandbox checks remain explicitly deferred to PR validation because this run had no
+  authorized sandbox environment.
+
+## Stage 2 Verification
+
+Tasks 2.1, 2.2, and 2.5 were integrated into the feature branch and independently reviewed
+against Requirements 4.1–4.5, 5.1–5.5, and 18.1–21.2. Task 2.2's worker output made the three
+declared model fields optional; integration restored the approved required-field contract and
+updated its fallback fixture. The complete current tree passes `just test` (217 tests), `just
+typecheck` (34 source files, no issues), and `just lint` (Ruff checks/format plus TOML sorting).
+The installed [`.agents`](../../.agents/) release is excluded from application Ruff traversal so its exact tagged
+contents remain byte-identical to upstream.
+
+## Task 3.1 Verification
+
+Claude implemented the 12 approved Tier 1 backup, log-drain, metric-drain, and certificate MCP
+tools, including their manager wiring and the shared package exports owned by this task. The
+coordinator independently reviewed the resulting composition tests and ran the complete current
+tree gates: `just test` passed all 235 tests, `just typecheck` reported no issues across 34 source
+files, and `just lint` passed Ruff checks, Ruff formatting, and TOML sorting.
+
+## Tier 1 Checkpoint Decision
+
+Task 3.2 added the five approved endpoint tools and focused composition/error tests. Independent
+verification passed all 243 tests, typechecking across 34 source files, Ruff checks/formatting,
+and TOML sorting. The residual-uncertainty behaviors are exercised by passing tests:
+`test_list_for_account_fallback_404` for log drains,
+`test_list_for_account_fallback_on_404` for metric drains, and
+`test_create_database_endpoint_success` for HAL-relation endpoint resolution. Tier 1 is therefore
+approved to proceed to Tier 2.
+
+## Tier 2 Checkpoint Decision
+
+Task 5.1 added all nine approved Tier 2 MCP tools and focused manager-composition/error tests.
+Independent verification passed all 260 tests, typechecking across 34 source files, Ruff
+checks/formatting, and TOML sorting. The existing `test_create_app_success` remains green, proving
+the established no-argument deploy path used by `createApp` is unaffected. Tier 2 is approved to
+proceed to Tier 3.
+
+## Task 7.1 Verification
+
+Claude added all ten approved Tier 3 tools, manager wiring for maintenance entries, and 19 focused
+tests covering database-operation composition, argument guards, maintenance listing, and app
+command output propagation. The production-impacting database tools explicitly document
+unavailability, billing, and failed-operation semantics. Independent `git diff --check` and the
+complete gates passed: 279 tests, clean typechecking across 34 source files, Ruff checks/formatting,
+and TOML sorting.
 
 ## Integration Decision
 
-- Status: pending
+- Status: push and create a pull request selected by the user
 - Base: `main`
-- Result: pending
-- Post-integration verification: pending
+- Result: implementation committed on `feature/mcp-api-parity`; push and PR creation are the
+  selected delivery path, with no local merge or deployment authorized
+- Commits: `2e3ed1e` (spec-driven skills v1.1.0), `3d75594` (API parity implementation)
+- Post-integration verification: required only if the user selects local merge
+
+## Final Verification
+
+All 19 required leaf tasks across eight stages are complete. The final tree passes `git diff
+--check`, all 280 tests, mypy across 34 source files, Ruff checks/formatting, and TOML sorting. A
+codebase-memory graph index plus an AST comparison confirmed every approved New MCP Tool is
+registered in [`main.py`](../../main.py) and documented in [`README.md`](../../README.md); the
+README inventories all 74 registered tools. No unresolved load-bearing review findings remain.
 
 ### Execution Gantt
 

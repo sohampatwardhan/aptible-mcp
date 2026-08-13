@@ -11,7 +11,7 @@
 | Design | approved | Approved 2026-08-12 — 5 new managers, 6 extended managers, 1 shared helper, 25 properties covering all 78 criteria |
 | Tasks | approved | Approved 2026-08-12 — 19 leaf tasks across 8 stages, 2 checkpoints (Tier 1/Tier 2 gates) |
 | Audit | not_run | — |
-| Execution | not_started | — |
+| Execution | complete | Completed 2026-08-13 — 19/19 tasks, 280 tests, typecheck/lint clean; push/PR against `main` selected |
 
 ## Change Control
 
@@ -26,3 +26,8 @@
   read-only. Requirements renumbered to 25/78 criteria and re-approved same session.
 - 2026-08-12: Design approved as written; proceeding to tasks.
 - 2026-08-12: Tasks approved as written; proceeding to execution.
+- 2026-08-13: Execution completed on `feature/mcp-api-parity`; all 19 tasks verified, README and
+  tool traceability updated, and final test/type/lint gates passed. No merge, push, or deployment
+  had been performed at completion time.
+- 2026-08-13: User selected a push and pull request against `main`; local commits prepared with
+  deployment and worktree cleanup explicitly out of scope.

@@ -10,7 +10,6 @@
 %%{init: {'flowchart': {'defaultRenderer': 'elk'}}}%%
 flowchart TD
   classDef done fill:#dcfce7,stroke:#22c55e,stroke-width:1.5px,color:#14532d
-  classDef pending fill:#f1f5f9,stroke:#94a3b8,stroke-width:1.5px,color:#334155
   subgraph n_stage_1["Stage 1"]
     n_1_1@{ shape: rect, label: "1.1: Add the shared _run_operation helper to ResourceManager" }
     n_1_2@{ shape: rect, label: "1.2: Add Backup model and BackupManager" }
@@ -79,18 +78,18 @@ flowchart TD
   class n_1_5 done
   class n_1_6 done
   class n_1_7 done
-  class n_2_1 pending
-  class n_2_2 pending
-  class n_2_3 pending
-  class n_2_4 pending
-  class n_2_5 pending
-  class n_3_1 pending
-  class n_3_2 pending
-  class n_4_1 pending
-  class n_5_1 pending
-  class n_6_1 pending
-  class n_7_1 pending
-  class n_8_1 pending
+  class n_2_1 done
+  class n_2_2 done
+  class n_2_3 done
+  class n_2_4 done
+  class n_2_5 done
+  class n_3_1 done
+  class n_3_2 done
+  class n_4_1 done
+  class n_5_1 done
+  class n_6_1 done
+  class n_7_1 done
+  class n_8_1 done
 ```
 > [!WARNING]
 > Execute dependency stages in order. Run tasks concurrently only when each is marked
@@ -211,40 +210,40 @@ flowchart TD
     - **Delegation:** parallel-safe
     - _Requirements: 17.1, 17.2, 17.3, 23.1, 23.2_
 
-- [ ] 2. Manager extensions using the shared operation helper (Stage 2)
-  - [ ] 2.1 Add `LogDrain` model and `LogDrainManager`
+- [x] 2. Manager extensions using the shared operation helper (Stage 2)
+  - [x] 2.1 Add `LogDrain` model and `LogDrainManager`
     - Create `LogDrain(ResourceBase)` with `handle: str`, `drain_type: str`, `status: str`.
     - Create `LogDrainManager` with `create(account_id, handle, drain_type, **type_fields)` (validate `drain_type` against `{"syslog_tls_tcp", "https_post", "elasticsearch_database"}` before any call; `POST /accounts/{id}/log_drains`, then `self._run_operation(drain.id, f"/log_drains/{drain.id}/operations", "provision")`), `list_for_account(account_id)` (try `GET /accounts/{id}/log_drains?per_page=5000&no_embed=true`; on a 404 `HTTPError`, fall back to `GET /log_drains?per_page=5000` filtered client-side by the drain's account link — this resolves the design's flagged Residual Uncertainty), `deprovision(drain_id)` (`self._run_operation(drain_id, f"/log_drains/{drain_id}/operations", "deprovision", refetch=False)`).
-    - **Files:** `models/log_drain.py`, `tests/test_log_drain.py`, [`models/__init__.py`](../../models/__init__.py)
+    - **Files:** [`models/log_drain.py`](../../models/log_drain.py), [`tests/test_log_drain.py`](../../tests/test_log_drain.py)
     - **Dependency resolution:** none
     - **Dependency delivery:** none
     - **Depends on:** 1.1
     - **Stage:** 2
-    - **Interfaces:** Consumes: `ResourceManager._run_operation` (task 1.1); Produces: `LogDrain` model and `LogDrainManager.{create, list_for_account, deprovision}`.
+    - **Interfaces:** Consumes: `ResourceManager._run_operation` (task 1.1); Produces: the `models.log_drain` module with `LogDrain` and `LogDrainManager.{create, list_for_account, deprovision}`; task 3.1 owns the shared package export.
     - **Documentation:** public API/module comments required; docstring on `list_for_account` documents the nested-path-then-fallback behavior and why (unconfirmed CLI path).
-    - **Verification:** New `tests/test_log_drain.py` covers create (valid + unsupported type), list (nested-path success, and fallback triggered by a mocked 404), and deprovision (success + unknown id). Run `just test`, `just typecheck`, `just lint`.
+    - **Verification:** New [`tests/test_log_drain.py`](../../tests/test_log_drain.py) covers create (valid + unsupported type), list (nested-path success, and fallback triggered by a mocked 404), and deprovision (success + unknown id). Run `just test`, `just typecheck`, `just lint`.
     - **Estimated effort:** 60-90 minutes
     - **Risk:** medium; the account-nested list path is unconfirmed against a real API — verify the fallback branch is actually exercised by a test, not just written
     - **Task category:** code_analysis
-    - **Delegation:** sequential subagent
+    - **Delegation:** parallel-safe
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
-  - [ ] 2.2 Add `MetricDrain` model and `MetricDrainManager`
+  - [x] 2.2 Add `MetricDrain` model and `MetricDrainManager`
     - Create `MetricDrain(ResourceBase)` with `handle: str`, `drain_type: str`, `status: str`.
     - Create `MetricDrainManager` mirroring `LogDrainManager`'s shape: `create(account_id, handle, drain_type, drain_configuration=None, **type_fields)` (validate `drain_type` against `{"influxdb_database", "influxdb", "influxdb2", "datadog"}`; `POST /accounts/{id}/metric_drains`, then `self._run_operation(drain.id, f"/metric_drains/{drain.id}/operations", "provision")`), `list_for_account(account_id)` (same nested-path-then-global-fallback pattern as log drains), `deprovision(drain_id)` (`self._run_operation(..., "deprovision", refetch=False)`).
-    - **Files:** `models/metric_drain.py`, `tests/test_metric_drain.py`, [`models/__init__.py`](../../models/__init__.py)
+    - **Files:** [`models/metric_drain.py`](../../models/metric_drain.py), [`tests/test_metric_drain.py`](../../tests/test_metric_drain.py)
     - **Dependency resolution:** none
     - **Dependency delivery:** none
     - **Depends on:** 1.1
     - **Stage:** 2
-    - **Interfaces:** Consumes: `ResourceManager._run_operation` (task 1.1); Produces: `MetricDrain` model and `MetricDrainManager.{create, list_for_account, deprovision}`.
+    - **Interfaces:** Consumes: `ResourceManager._run_operation` (task 1.1); Produces: the `models.metric_drain` module with `MetricDrain` and `MetricDrainManager.{create, list_for_account, deprovision}`; task 3.1 owns the shared package export.
     - **Documentation:** public API/module comments required; docstring notes `drain_configuration` is a nested object for most types, unlike log drains' flat fields.
-    - **Verification:** New `tests/test_metric_drain.py` mirrors task 2.1's test cases for the metric-drain shape. Run `just test`, `just typecheck`, `just lint`.
+    - **Verification:** New [`tests/test_metric_drain.py`](../../tests/test_metric_drain.py) mirrors task 2.1's test cases for the metric-drain shape. Run `just test`, `just typecheck`, `just lint`.
     - **Estimated effort:** 60-90 minutes
     - **Risk:** medium; same unconfirmed-list-path caveat as task 2.1
     - **Task category:** code_analysis
-    - **Delegation:** sequential subagent
+    - **Delegation:** parallel-safe
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
-  - [ ] 2.3 Extend `Vhost`: custom domains, TLS, endpoint types
+  - [x] 2.3 Extend `Vhost`: custom domains, TLS, endpoint types
     - Add `type: str | None = Field(None, ...)`, `user_domain: str | None = Field(None, ...)`, and `container_ports: list[int] | None = Field(None, ...)` fields to `Vhost`, matching the existing `virtual_domain: str | None` convention exactly — **not** required fields, since every existing fixture/response (including today's default on-aptible.com vhosts) lacks them and `model_validate` would otherwise reject them. This is a typed-access improvement over `ResourceBase`'s `extra="allow"` passthrough, not new data.
     - Add `create_custom_domain(service_id, domain, managed_tls=True, certificate_fingerprint=None, endpoint_type="http", container_ports=None)`: build the `POST /services/{id}/vhosts` body per design (managed TLS → `acme`+`user_domain`; custom cert → `certificate_fingerprint`; type-specific port fields), then `self._run_operation(vhost.id, f"/vhosts/{vhost.id}/operations", "provision")`. Raise before the call if `endpoint_type == "tls"` and no certificate reference is supplied.
     - Add `create_database_endpoint(database_id, internal=False, ip_whitelist=None)`: resolve the database's own `vhosts` HAL relation (fetch the database resource, read `links["vhosts"]["href"]`) rather than hardcoding a path, `POST` `{"type":"tcp","platform":"elb", ...}`, then provision — this resolves the design's flagged Residual Uncertainty about the exact path.
@@ -263,7 +262,7 @@ flowchart TD
     - **Task category:** heavy_reasoning
     - **Delegation:** parallel-safe
     - _Requirements: 6.1, 6.2, 6.3, 7.2, 7.5, 8.1, 8.2, 8.3, 9.1, 9.2, 10.1, 10.2, 10.3_
-  - [ ] 2.4 Extend `AppManager`: rename, deploy, rebuild, restart, run
+  - [x] 2.4 Extend `AppManager`: rename, deploy, rebuild, restart, run
     - Add `rename(app_id, new_handle)`: `PUT /apps/{id} {"handle": new_handle}`.
     - Extend the existing `deploy(app_id, docker_image=None, git_ref=None)`: when `docker_image` or `git_ref` is supplied, include `settings`/`git_ref` in the operation body per design; preserve today's no-arg redeploy behavior when neither is given. Change its return type from `None` to `App` (refetch via `self.get_by_id(app_id)` after `wait_for_operation`, matching `_run_operation`'s shape) — every existing call site (`createApp` in [`main.py`](../../main.py), which calls `deploy(app.id)` with no args and discards the return) is unaffected by this since Python allows ignoring a return value; only add the return, don't change any caller.
     - Add `rebuild(app_id)` and `restart(app_id)`: each `self._run_operation(app_id, f"/apps/{app_id}/operations", "rebuild"|"restart")`.
@@ -281,7 +280,7 @@ flowchart TD
     - **Task category:** code_analysis
     - **Delegation:** parallel-safe
     - _Requirements: 11.1, 11.2, 11.3, 12.1, 12.2, 12.3, 13.1, 13.2, 14.1, 14.2, 24.1, 24.2, 24.3_
-  - [ ] 2.5 Extend `DatabaseManager`: replicate, clone, resize, rename
+  - [x] 2.5 Extend `DatabaseManager`: replicate, clone, resize, rename
     - Fix a pre-existing bug while touching this class: `delete()` currently does `await self.api_client.wait_for_operation(...)` ([`models/database.py`](../../models/database.py):133, with a `# type: ignore[func-returns-value]` masking it), but `wait_for_operation` is a synchronous method returning `None` — this raises `TypeError` against the real client and is only hidden because its test mocks the call with `AsyncMock` instead of `MagicMock` (unlike every other manager's tests). Remove the `await` and the `type: ignore`, and fix the corresponding test in [`tests/test_database.py`](../../tests/test_database.py) to mock with `MagicMock()`. Write every new method below using the correct non-awaited pattern from the start so this bug isn't copied.
     - Add `replicate(database_id, replica_handle, container_size=None, disk_size=None)` and `clone(database_id, new_handle)`: each `POST /databases/{database_id}/operations {"type":"replicate"|"clone", ...}` + `wait_for_operation`, no refetch (tool layer composes with `get(new_handle, ...)`).
     - Add `modify_iops(database_id, provisioned_iops=None, ebs_volume_type=None)` and `reload(database_id)` and `restart(database_id)`: each `self._run_operation(database_id, f"/databases/{database_id}/operations", "modify"|"reload"|"restart", extra)`.
@@ -302,16 +301,17 @@ flowchart TD
     - **Delegation:** parallel-safe
     - _Requirements: 18.1, 18.2, 18.3, 19.1, 19.2, 19.3, 20.1, 20.2, 20.3, 20.4, 20.5, 20.6, 20.7, 21.1, 21.2_
 
-- [ ] 3. Tier 1 MCP tools — backups, drains, certificates, endpoints
-  - [ ] 3.1 Add Tier 1 tools: backups, drains, certificates
+- [x] 3. Tier 1 MCP tools — backups, drains, certificates, endpoints
+  - [x] 3.1 Add Tier 1 tools: backups, drains, certificates
+    - Export `LogDrain`, `LogDrainManager`, `MetricDrain`, and `MetricDrainManager` from [`models/__init__.py`](../../models/__init__.py) before importing and instantiating the managers in [`main.py`](../../main.py). This shared integration edit belongs here so Stage 2 tasks 2.1 and 2.2 remain disjoint and can execute concurrently.
     - Add [`main.py`](../../main.py) tools: `listDatabaseBackups`, `restoreDatabaseFromBackup` (composes `backup_manager.restore` + `database_manager.get` for the resulting database, per the design's Key Flows sequence), `listOrphanedBackups`, `purgeBackup`, `createLogDrain`, `listLogDrains`, `deprovisionLogDrain`, `createMetricDrain`, `listMetricDrains`, `deprovisionMetricDrain`, `uploadCertificate`, `listCertificates`. Each resolves handle(s) via existing `getApp`/`getDatabase`/`getAccount` helpers exactly like existing tools, calls the manager, and `.model_dump()`s the result.
     - Instantiate `backup_manager`, `log_drain_manager`, `metric_drain_manager`, `certificate_manager` alongside the existing manager instances at module scope.
-    - **Files:** [`main.py`](../../main.py), [`tests/test_main.py`](../../tests/test_main.py)
+    - **Files:** [`main.py`](../../main.py), [`tests/test_main.py`](../../tests/test_main.py), [`models/__init__.py`](../../models/__init__.py)
     - **Dependency resolution:** none
     - **Dependency delivery:** none
     - **Depends on:** 1.2, 1.3, 2.1, 2.2
     - **Stage:** 3
-    - **Interfaces:** Consumes: `BackupManager` (1.2), `CertificateManager` (1.3), `LogDrainManager` (2.1), `MetricDrainManager` (2.2), existing `getApp`/`getDatabase`/`getAccount`; Produces: the 12 named `@mcp.tool()` functions above, registered on the module-level `mcp` instance.
+    - **Interfaces:** Consumes: `BackupManager` (1.2), `CertificateManager` (1.3), the `models.log_drain` module (2.1), the `models.metric_drain` module (2.2), existing `getApp`/`getDatabase`/`getAccount`; Produces: package exports for both drain models/managers and the 12 named `@mcp.tool()` functions above, registered on the module-level `mcp` instance.
     - **Documentation:** public API/module comments required; each tool's docstring matches the existing one-paragraph style (see `getDatabase` in [`main.py`](../../main.py)) stating what it does and any handle-disambiguation behavior.
     - **Verification:** Extend [`tests/test_main.py`](../../tests/test_main.py) with one case per tool verifying correct manager composition and handle resolution (mocking the managers, not the HTTP layer). Run `just test`, `just typecheck`, `just lint`.
     - **Estimated effort:** 90-150 minutes
@@ -319,7 +319,7 @@ flowchart TD
     - **Task category:** code_analysis
     - **Delegation:** controller
     - _Requirements: 1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 3.1, 3.2, 3.3, 4.1, 4.2, 4.3, 4.4, 4.5, 5.1, 5.2, 5.3, 5.4, 5.5, 7.1, 7.3, 7.4_
-  - [ ] 3.2 Add Tier 1 MCP tools for endpoints
+  - [x] 3.2 Add Tier 1 MCP tools for endpoints
     - Add [`main.py`](../../main.py) tools: `createCustomDomainEndpoint`, `createTypedEndpoint`, `createDatabaseEndpoint`, `modifyEndpoint`, `renewEndpoint`, following the same thin-wrapper style as task 3.1.
     - **Files:** [`main.py`](../../main.py), [`tests/test_main.py`](../../tests/test_main.py)
     - **Dependency resolution:** none
@@ -335,8 +335,8 @@ flowchart TD
     - **Delegation:** controller
     - _Requirements: 6.1, 6.2, 6.3, 7.2, 7.5, 8.1, 8.2, 8.3, 9.1, 9.2, 10.1, 10.2, 10.3_
 
-- [ ] 4. Checkpoint — Tier 1 complete
-  - [ ] 4.1 Review Tier 1 before starting Tier 2
+- [x] 4. Checkpoint — Tier 1 complete
+  - [x] 4.1 Review Tier 1 before starting Tier 2
     - Confirm `just test`, `just typecheck`, `just lint` are green with only Tier 1 changes present. Confirm the log/metric drain listing fallback (task 2.1/2.2) and the database-endpoint HAL-relation resolution (task 2.3) were each actually exercised by a passing test, not merely written. This is the natural point to ship/merge Tier 1 per the discovery's phased-tiers decision, independent of Tier 2/3.
     - **Files:** none (review checkpoint)
     - **Dependency resolution:** none
@@ -352,8 +352,8 @@ flowchart TD
     - **Delegation:** controller
     - _Requirements: 25.1, 25.2_
 
-- [ ] 5. Tier 2 MCP tools — app lifecycle, service settings, operation control, environment
-  - [ ] 5.1 Add Tier 2 MCP tools
+- [x] 5. Tier 2 MCP tools — app lifecycle, service settings, operation control, environment
+  - [x] 5.1 Add Tier 2 MCP tools
     - Add [`main.py`](../../main.py) tools: `renameApp`, `deployApp`, `rebuildApp`, `restartApp`, `getServiceSettings`, `updateServiceSettings`, `cancelOperation`, `renameEnvironment`, `getEnvironmentCaCertificate`, following the same thin-wrapper style as task 3.1.
     - **Files:** [`main.py`](../../main.py), [`tests/test_main.py`](../../tests/test_main.py)
     - **Dependency resolution:** none
@@ -369,8 +369,8 @@ flowchart TD
     - **Delegation:** controller
     - _Requirements: 11.1, 11.2, 11.3, 12.1, 12.2, 12.3, 13.1, 13.2, 14.1, 14.2, 15.1, 15.2, 15.3, 16.1, 16.2, 16.3, 17.1, 17.2, 17.3, 23.1, 23.2_
 
-- [ ] 6. Checkpoint — Tier 2 complete
-  - [ ] 6.1 Review Tier 2 before starting Tier 3
+- [x] 6. Checkpoint — Tier 2 complete
+  - [x] 6.1 Review Tier 2 before starting Tier 3
     - Confirm `just test`, `just typecheck`, `just lint` are green with Tier 1 + Tier 2 changes present. Confirm the extended `deploy()`'s no-arg path (used by the existing `createApp`) still behaves identically to before this feature.
     - **Files:** none (review checkpoint)
     - **Dependency resolution:** none
@@ -386,8 +386,8 @@ flowchart TD
     - **Delegation:** controller
     - _Requirements: 25.1, 25.2_
 
-- [ ] 7. Tier 3 MCP tools — database lifecycle, maintenance visibility, one-off execution
-  - [ ] 7.1 Add Tier 3 MCP tools
+- [x] 7. Tier 3 MCP tools — database lifecycle, maintenance visibility, one-off execution
+  - [x] 7.1 Add Tier 3 MCP tools
     - Add [`main.py`](../../main.py) tools: `replicateDatabase` (composes `database_manager.replicate` + `database_manager.get` for the resulting replica), `cloneDatabase` (same composition pattern for the cloned database), `modifyDatabaseIops`, `resizeDatabase`, `reloadDatabase`, `renameDatabase`, `restartDatabase`, `listDatabaseVersions`, `listMaintenanceEntries`, `runAppCommand`, following the same thin-wrapper style as task 3.1.
     - **Files:** [`main.py`](../../main.py), [`tests/test_main.py`](../../tests/test_main.py)
     - **Dependency resolution:** none
@@ -403,8 +403,8 @@ flowchart TD
     - **Delegation:** controller
     - _Requirements: 18.1, 18.2, 18.3, 19.1, 19.2, 19.3, 20.1, 20.2, 20.3, 20.4, 20.5, 20.6, 20.7, 21.1, 21.2, 22.1, 22.2, 24.1, 24.2, 24.3_
 
-- [ ] 8. Final verification and documentation
-  - [ ] 8.1 Final verification, traceability check, README update
+- [x] 8. Final verification and documentation
+  - [x] 8.1 Final verification, traceability check, README update
     - Run the complete test/typecheck/lint suite with all tasks' changes present.
     - Cross-check every tool listed in the design's "New MCP Tools" section exists in [`main.py`](../../main.py) with a matching signature, and that every requirement criterion in [`02_requirements.md`](02_requirements.md) is covered by at least one implemented tool or manager method.
     - Update [`README.md`](../../README.md)'s "Features" bullet list to mention the new capability areas (backups/restore, log & metric drains, custom-domain/TLS endpoints, expanded app/database lifecycle operations) and its "Structure" section to list the new [`models/`](../../models) files.
