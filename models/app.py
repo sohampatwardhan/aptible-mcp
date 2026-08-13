@@ -86,14 +86,83 @@ class AppManager(ResourceManager[App, str]):
         response = self.api_client.post(f"/apps/{app_id}/operations", operation_data)
         self.api_client.wait_for_operation(response["id"])
 
-    async def deploy(self, app_id: int) -> None:
+    async def deploy(
+        self,
+        app_id: int,
+        docker_image: Optional[str] = None,
+        git_ref: Optional[str] = None,
+    ) -> App:
         """
-        Trigger a deployment of an app. This assumes docker image deployment with an
-        already set docker image.
+        Trigger a deployment of an app. If docker_image or git_ref is supplied,
+        deploy that image or git ref. Otherwise, perform a standard redeploy.
         """
-        operation_data = {"type": "deploy"}
+        extra: Dict[str, Any] = {}
+        if docker_image:
+            extra["settings"] = {"APTIBLE_DOCKER_IMAGE": docker_image}
+        if git_ref:
+            extra["git_ref"] = git_ref
+
+        app = await self._run_operation(
+            app_id,
+            f"/apps/{app_id}/operations",
+            "deploy",
+            extra=extra if extra else None,
+        )
+        if not app:
+            raise Exception(f"App {app_id} not found")
+        return app
+
+    async def rename(self, app_id: int, new_handle: str) -> App:
+        """
+        Rename an app to a new handle.
+        """
+        response = self.api_client.put(f"/apps/{app_id}", {"handle": new_handle})
+        return self.resource_model.model_validate(response)
+
+    async def rebuild(self, app_id: int) -> App:
+        """
+        Rebuild an app's current release.
+        """
+        app = await self._run_operation(app_id, f"/apps/{app_id}/operations", "rebuild")
+        if not app:
+            raise Exception(f"App {app_id} not found")
+        return app
+
+    async def restart(self, app_id: int) -> App:
+        """
+        Restart an app's containers.
+        """
+        app = await self._run_operation(app_id, f"/apps/{app_id}/operations", "restart")
+        if not app:
+            raise Exception(f"App {app_id} not found")
+        return app
+
+    async def run_command(
+        self, app_id: int, command: str, interactive: bool = False
+    ) -> str:
+        """
+        Run a one-off command against an app. Starts an execute operation,
+        waits for completion, and returns the captured output.
+        """
+        operation_data = {
+            "type": "execute",
+            "command": command,
+            "interactive": interactive,
+        }
         response = self.api_client.post(f"/apps/{app_id}/operations", operation_data)
-        self.api_client.wait_for_operation(response["id"])
+        op_id = response["id"]
+
+        from models.operation import OperationManager
+
+        op_manager = OperationManager(self.api_client)
+        try:
+            self.api_client.wait_for_operation(op_id)
+        except Exception as e:
+            logs = await op_manager.logs(op_id)
+            if logs:
+                raise Exception(f"{e}\nOutput:\n{logs}")
+            raise
+        return await op_manager.logs(op_id)
 
     async def delete(self, app_id: int) -> None:
         """

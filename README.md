@@ -21,8 +21,40 @@ This project provides MCP tools for interacting with the Aptible API. It uses Py
 - `api_client.py` - API client for interacting with the Aptible API
 - `models/` - Pydantic models for Aptible resources
   - `base.py` - Base models and resource manager
-  - Resource-specific models (account.py, app.py, etc.)
+  - Resource-specific models (`account.py`, `app.py`, `backup.py`, `certificate.py`, `database.py`,
+    `log_drain.py`, `maintenance.py`, `metric_drain.py`, `operation.py`, `service.py`, `stack.py`,
+    `vhost.py`)
 - `main.py` - MCP tools implementation
+
+## Tools
+
+`main.py` registers the following MCP tools, grouped by resource:
+
+- **Accounts/Environments**: `listAccounts`, `getAccount`, `getAccountsByStack`, `createAccount`,
+  `renameEnvironment`, `getEnvironmentCaCertificate`
+- **Apps**: `listApps`, `getApp`, `createApp`, `configureApp`, `deleteApp`, `renameApp`,
+  `deployApp`, `rebuildApp`, `restartApp`, `runAppCommand`
+- **Databases**: `listAvailableDatabaseTypes`, `listDatabases`, `getDatabase`, `createDatabase`,
+  `deleteDatabase`, `replicateDatabase`, `cloneDatabase`, `modifyDatabaseIops`, `resizeDatabase`,
+  `reloadDatabase`, `renameDatabase`, `restartDatabase`, `listDatabaseVersions`
+- **Backups**: `listDatabaseBackups`, `restoreDatabaseFromBackup`, `listOrphanedBackups`,
+  `purgeBackup`
+- **Log/Metric Drains**: `createLogDrain`, `listLogDrains`, `deprovisionLogDrain`,
+  `createMetricDrain`, `listMetricDrains`, `deprovisionMetricDrain`
+- **Certificates**: `uploadCertificate`, `listCertificates`
+- **Maintenance**: `listMaintenanceEntries`
+- **Stacks**: `listStacks`, `getStack`
+- **VHosts/Endpoints**: `listVhosts`, `getVhost`, `createVhost`, `deleteVhost`,
+  `createCustomDomainEndpoint`, `createTypedEndpoint`, `createDatabaseEndpoint`, `modifyEndpoint`,
+  `renewEndpoint`
+- **Services**: `listServices`, `getService`, `scaleService`, `getServiceSettings`,
+  `updateServiceSettings`, `listServiceVhosts`
+- **Operations**: `getOperationsForApp`, `getOperationsForDatabase`, `getOperationsForVhost`,
+  `getOperationLogs`, `cancelOperation`
+- **Examples**: `getProcfileExample`, `getAptibleYamlExample`, `getEndpointProvisionExample`,
+  `getAppProvisionExample`, `getAppDeprovisionExample`, `getAppConfigureExample`,
+  `getDatabaseProvisionExample`, `getDatabaseDeprovisionExample`, `getDatabaseRestoreExample`,
+  `getBuildDeployExample`
 
 ## Usage
 

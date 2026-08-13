@@ -118,6 +118,134 @@ class DatabaseManager(ResourceManager[Database, str]):
 
         return database
 
+    async def replicate(
+        self,
+        database_id: int,
+        replica_handle: str,
+        container_size: Optional[int] = None,
+        disk_size: Optional[int] = None,
+    ) -> None:
+        """
+        Create a read replica of a database and wait for it to be ready.
+
+        The replica is a new resource, so callers fetch it separately by handle.
+        """
+        operation_data: dict[str, Any] = {
+            "type": "replicate",
+            "handle": replica_handle,
+        }
+        if container_size is not None:
+            operation_data["container_size"] = container_size
+        if disk_size is not None:
+            operation_data["disk_size"] = disk_size
+
+        response = self.api_client.post(
+            f"/databases/{database_id}/operations", operation_data
+        )
+        self.api_client.wait_for_operation(response["id"])
+
+    async def clone(self, database_id: int, new_handle: str) -> None:
+        """
+        Clone a database into a new resource and wait for it to be ready.
+
+        Callers fetch the newly-created database separately by handle.
+        """
+        operation_data = {"type": "clone", "handle": new_handle}
+        response = self.api_client.post(
+            f"/databases/{database_id}/operations", operation_data
+        )
+        self.api_client.wait_for_operation(response["id"])
+
+    async def modify_iops(
+        self,
+        database_id: int,
+        provisioned_iops: Optional[int] = None,
+        ebs_volume_type: Optional[str] = None,
+    ) -> Database:
+        """Modify a database's provisioned IOPS or EBS volume type."""
+        extra: dict[str, Any] = {}
+        if provisioned_iops is not None:
+            extra["provisioned_iops"] = provisioned_iops
+        if ebs_volume_type is not None:
+            extra["ebs_volume_type"] = ebs_volume_type
+
+        database = await self._run_operation(
+            database_id,
+            f"/databases/{database_id}/operations",
+            "modify",
+            extra=extra if extra else None,
+        )
+        if not database:
+            raise Exception(f"Database {database_id} not found")
+        return database
+
+    async def resize(
+        self,
+        database_id: int,
+        container_size: Optional[int] = None,
+        disk_size: Optional[int] = None,
+        instance_profile: Optional[str] = None,
+    ) -> Database:
+        """
+        Resize a database's container, disk, or instance profile.
+
+        Aptible performs database resize through a ``restart`` operation, not
+        a ``modify`` operation; this method preserves that API behavior.
+        """
+        extra: dict[str, Any] = {}
+        if container_size is not None:
+            extra["container_size"] = container_size
+        if disk_size is not None:
+            extra["disk_size"] = disk_size
+        if instance_profile is not None:
+            extra["instance_profile"] = instance_profile
+
+        database = await self._run_operation(
+            database_id,
+            f"/databases/{database_id}/operations",
+            "restart",
+            extra=extra if extra else None,
+        )
+        if not database:
+            raise Exception(f"Database {database_id} not found")
+        return database
+
+    async def reload(self, database_id: int) -> Database:
+        """Reload a database and return its refreshed resource."""
+        database = await self._run_operation(
+            database_id, f"/databases/{database_id}/operations", "reload"
+        )
+        if not database:
+            raise Exception(f"Database {database_id} not found")
+        return database
+
+    async def rename(self, database_id: int, new_handle: str) -> Database:
+        """Rename a database to a new handle."""
+        response = self.api_client.put(
+            f"/databases/{database_id}", {"handle": new_handle}
+        )
+        return self.resource_model.model_validate(response)
+
+    async def restart(self, database_id: int) -> Database:
+        """Restart a database without changing its size."""
+        database = await self._run_operation(
+            database_id, f"/databases/{database_id}/operations", "restart"
+        )
+        if not database:
+            raise Exception(f"Database {database_id} not found")
+        return database
+
+    async def list_versions_for_type(self, database_type: str) -> List[DatabaseImage]:
+        """List available database images for a database type."""
+        images = [
+            image
+            for image in await self.list_available_types()
+            if image.type == database_type
+        ]
+        if not images:
+            raise ValueError(f"No database type found named {database_type}")
+        return images
+
     async def delete(self, database_id: int) -> None:
         """
         Delete a database by handle.
@@ -130,4 +258,4 @@ class DatabaseManager(ResourceManager[Database, str]):
         response = self.api_client.post(
             f"/databases/{database.id}/operations", operation_data
         )
-        await self.api_client.wait_for_operation(response["id"])  # type: ignore[func-returns-value]
+        self.api_client.wait_for_operation(response["id"])
