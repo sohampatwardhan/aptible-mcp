@@ -6,15 +6,15 @@
 
 ## Active Wave
 
-PR release review is complete. All implementation and release-hardening tasks are verified; the
-versioned package is built and GitHub publication is the remaining active step.
+PR release review is complete. All implementation and release-hardening tasks are verified, and
+the versioned package is published on GitHub.
 
 ```mermaid
 flowchart LR
     implementation[Implementation and local tests]:::complete --> live[Read-only Aptible contracts]:::complete
     live --> async[Async HTTP conversion]:::complete
     async --> security[Release dependency audit]:::complete
-    security --> publish[GitHub release]:::progress
+    security --> publish[GitHub release]:::complete
 
     classDef failed fill:#fecaca,stroke:#dc2626,color:#7f1d1d
     classDef progress fill:#fde68a,stroke:#d97706,color:#78350f
@@ -248,8 +248,8 @@ registered in [`main.py`](../../main.py) and documented in [`README.md`](../../R
 README inventories all 74 registered tools. All Aptible HTTP requests and operation polling are
 asynchronous and cancellable. The authenticated release dependency audit passes with a complete
 CycloneDX runtime graph, installed `pip-audit`, batched NVD enrichment, and zero findings. The
-validated `dist/aptible-mcp-0.2.0.mcpb` artifact is ready; no Aptible MCP GitHub release has yet
-been published.
+validated `dist/aptible-mcp-0.2.0.mcpb` artifact was published as
+[`v0.2.0`](https://github.com/sohampatwardhan/aptible-mcp/releases/tag/v0.2.0).
 
 ### Execution Gantt
 
