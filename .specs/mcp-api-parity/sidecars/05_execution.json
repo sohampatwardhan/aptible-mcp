@@ -1,0 +1,511 @@
+{
+  "gantt": {
+    "axisFormat": "%m-%d %H:%M",
+    "dateFormat": "YYYY-MM-DDTHH:mm:ss",
+    "diagram": "timeline",
+    "sections": [
+      {
+        "bars": [
+          {
+            "end": "2026-08-13T18:13:04",
+            "id": "run_20260813T174410Z",
+            "label": "run-20260813T174410Z (complete, 1734s)",
+            "start": "2026-08-13T17:44:10",
+            "tags": [
+              "done"
+            ]
+          }
+        ],
+        "name": "Execution Runs"
+      },
+      {
+        "bars": [
+          {
+            "end": "2026-08-12T17:43:56",
+            "id": "b_1_1_attempt1",
+            "label": "1.1 attempt 1 (verified, 96s)",
+            "start": "2026-08-12T17:42:20",
+            "tags": [
+              "done"
+            ]
+          },
+          {
+            "end": "2026-08-12T17:46:46",
+            "id": "b_1_2_attempt1",
+            "label": "1.2 attempt 1 (verified, 104s)",
+            "start": "2026-08-12T17:45:02",
+            "tags": [
+              "done"
+            ]
+          },
+          {
+            "end": "2026-08-12T20:20:10",
+            "id": "b_1_3_attempt1",
+            "label": "1.3 attempt 1 (verified, 174s)",
+            "start": "2026-08-12T20:17:16",
+            "tags": [
+              "done"
+            ]
+          },
+          {
+            "end": "2026-08-12T20:28:43",
+            "id": "b_1_4_attempt1",
+            "label": "1.4 attempt 1 (verified, 368s)",
+            "start": "2026-08-12T20:22:35",
+            "tags": [
+              "done"
+            ]
+          },
+          {
+            "end": "2026-08-12T20:32:30",
+            "id": "b_1_5_attempt1",
+            "label": "1.5 attempt 1 (verified, 74s)",
+            "start": "2026-08-12T20:31:16",
+            "tags": [
+              "done"
+            ]
+          },
+          {
+            "end": "2026-08-12T20:34:03",
+            "id": "b_1_6_attempt1",
+            "label": "1.6 attempt 1 (verified, 77s)",
+            "start": "2026-08-12T20:32:46",
+            "tags": [
+              "done"
+            ]
+          },
+          {
+            "end": "2026-08-12T20:35:34",
+            "id": "b_1_7_attempt1",
+            "label": "1.7 attempt 1 (verified, 78s)",
+            "start": "2026-08-12T20:34:16",
+            "tags": [
+              "done"
+            ]
+          }
+        ],
+        "name": "Stage 1"
+      },
+      {
+        "bars": [
+          {
+            "end": "2026-08-12T20:56:06",
+            "id": "b_2_3_attempt1",
+            "label": "2.3 attempt 1 (verified, 256s)",
+            "start": "2026-08-12T20:51:50",
+            "tags": [
+              "done"
+            ]
+          },
+          {
+            "end": "2026-08-12T20:56:36",
+            "id": "b_2_4_attempt1",
+            "label": "2.4 attempt 1 (verified, 292s)",
+            "start": "2026-08-12T20:51:44",
+            "tags": [
+              "done"
+            ]
+          }
+        ],
+        "name": "Stage 2"
+      },
+      {
+        "bars": [
+          {
+            "end": "2026-08-13T17:46:14",
+            "id": "b_2_1_attempt1",
+            "label": "2.1 attempt 1 (verified, 124s)",
+            "start": "2026-08-13T17:44:10",
+            "tags": [
+              "done"
+            ]
+          },
+          {
+            "end": "2026-08-13T17:46:14",
+            "id": "b_2_2_attempt1",
+            "label": "2.2 attempt 1 (verified, 124s)",
+            "start": "2026-08-13T17:44:10",
+            "tags": [
+              "done"
+            ]
+          }
+        ],
+        "name": "Stage 2 integration"
+      },
+      {
+        "bars": [
+          {
+            "end": "2026-08-13T17:46:14",
+            "id": "b_2_5_attempt2",
+            "label": "2.5 attempt 2 (verified, 124s)",
+            "start": "2026-08-13T17:44:10",
+            "tags": [
+              "done"
+            ]
+          }
+        ],
+        "name": "Stage 2 verification"
+      },
+      {
+        "bars": [
+          {
+            "end": "2026-08-13T17:52:56",
+            "id": "b_3_1_attempt1",
+            "label": "3.1 attempt 1 (verified, 279s)",
+            "start": "2026-08-13T17:48:17",
+            "tags": [
+              "done"
+            ]
+          },
+          {
+            "end": "2026-08-13T17:56:08",
+            "id": "b_3_2_attempt1",
+            "label": "3.2 attempt 1 (failed: Antigravity authentication unavailable, 113s)",
+            "start": "2026-08-13T17:54:15",
+            "tags": [
+              "done"
+            ]
+          },
+          {
+            "end": "2026-08-13T17:59:40",
+            "id": "b_3_2_attempt2",
+            "label": "3.2 attempt 2 (verified, 212s)",
+            "start": "2026-08-13T17:56:08",
+            "tags": [
+              "done"
+            ]
+          }
+        ],
+        "name": "Stage 3 serial"
+      },
+      {
+        "bars": [
+          {
+            "end": "2026-08-13T17:59:41",
+            "id": "b_4_1_attempt1",
+            "label": "4.1 attempt 1 (verified, 0s)",
+            "start": "2026-08-13T17:59:40",
+            "tags": [
+              "done"
+            ]
+          }
+        ],
+        "name": "Stage 4 checkpoint"
+      },
+      {
+        "bars": [
+          {
+            "end": "2026-08-13T18:04:20",
+            "id": "b_5_1_attempt1",
+            "label": "5.1 attempt 1 (verified, 249s)",
+            "start": "2026-08-13T18:00:11",
+            "tags": [
+              "done"
+            ]
+          }
+        ],
+        "name": "Stage 5 serial"
+      },
+      {
+        "bars": [
+          {
+            "end": "2026-08-13T18:04:21",
+            "id": "b_6_1_attempt1",
+            "label": "6.1 attempt 1 (verified, 0s)",
+            "start": "2026-08-13T18:04:20",
+            "tags": [
+              "done"
+            ]
+          }
+        ],
+        "name": "Stage 6 checkpoint"
+      },
+      {
+        "bars": [
+          {
+            "end": "2026-08-13T18:09:23",
+            "id": "b_7_1_attempt1",
+            "label": "7.1 attempt 1 (verified, 252s)",
+            "start": "2026-08-13T18:05:11",
+            "tags": [
+              "done"
+            ]
+          }
+        ],
+        "name": "Stage 7 serial"
+      },
+      {
+        "bars": [
+          {
+            "end": "2026-08-13T18:13:04",
+            "id": "b_8_1_attempt1",
+            "label": "8.1 attempt 1 (verified, 180s)",
+            "start": "2026-08-13T18:10:04",
+            "tags": [
+              "done"
+            ]
+          }
+        ],
+        "name": "Stage 8 final"
+      }
+    ],
+    "target": "gantt"
+  },
+  "generated_from": {
+    "file": "05_execution.md",
+    "sha256": "4e143cad46667b4ee52443c65eb9da37f23832be8d8d5423f6244a576be4bd31"
+  },
+  "runs": [
+    {
+      "elapsed_seconds": "unknown",
+      "outcome": "interrupted",
+      "run_id": "run-20260812T173015Z",
+      "started_utc": "2026-08-12T17:30:15Z",
+      "stopped_utc": "unknown"
+    },
+    {
+      "elapsed_seconds": "unknown",
+      "outcome": "interrupted",
+      "run_id": "run-20260812T201522Z",
+      "started_utc": "2026-08-12T20:15:22Z",
+      "stopped_utc": "unknown"
+    },
+    {
+      "elapsed_seconds": 1734,
+      "outcome": "complete",
+      "run_id": "run-20260813T174410Z",
+      "started_utc": "2026-08-13T17:44:10Z",
+      "stopped_utc": "2026-08-13T18:13:04Z"
+    }
+  ],
+  "schema_version": 1,
+  "task_attempts": [
+    {
+      "attempt": 1,
+      "elapsed_seconds": 96,
+      "outcome": "verified",
+      "run_id": "run-20260812T173015Z",
+      "stage_wave": "Stage 1",
+      "started_utc": "2026-08-12T17:42:20Z",
+      "stopped_utc": "2026-08-12T17:43:56Z",
+      "task": "1.1"
+    },
+    {
+      "attempt": 1,
+      "elapsed_seconds": 104,
+      "outcome": "verified",
+      "run_id": "run-20260812T173015Z",
+      "stage_wave": "Stage 1",
+      "started_utc": "2026-08-12T17:45:02Z",
+      "stopped_utc": "2026-08-12T17:46:46Z",
+      "task": "1.2"
+    },
+    {
+      "attempt": 1,
+      "elapsed_seconds": 174,
+      "outcome": "verified",
+      "run_id": "run-20260812T201522Z",
+      "stage_wave": "Stage 1",
+      "started_utc": "2026-08-12T20:17:16Z",
+      "stopped_utc": "2026-08-12T20:20:10Z",
+      "task": "1.3"
+    },
+    {
+      "attempt": 1,
+      "elapsed_seconds": 368,
+      "outcome": "verified",
+      "run_id": "run-20260812T201522Z",
+      "stage_wave": "Stage 1",
+      "started_utc": "2026-08-12T20:22:35Z",
+      "stopped_utc": "2026-08-12T20:28:43Z",
+      "task": "1.4"
+    },
+    {
+      "attempt": 1,
+      "elapsed_seconds": 74,
+      "outcome": "verified",
+      "run_id": "run-20260812T201522Z",
+      "stage_wave": "Stage 1",
+      "started_utc": "2026-08-12T20:31:16Z",
+      "stopped_utc": "2026-08-12T20:32:30Z",
+      "task": "1.5"
+    },
+    {
+      "attempt": 1,
+      "elapsed_seconds": 77,
+      "outcome": "verified",
+      "run_id": "run-20260812T201522Z",
+      "stage_wave": "Stage 1",
+      "started_utc": "2026-08-12T20:32:46Z",
+      "stopped_utc": "2026-08-12T20:34:03Z",
+      "task": "1.6"
+    },
+    {
+      "attempt": 1,
+      "elapsed_seconds": 78,
+      "outcome": "verified",
+      "run_id": "run-20260812T201522Z",
+      "stage_wave": "Stage 1",
+      "started_utc": "2026-08-12T20:34:16Z",
+      "stopped_utc": "2026-08-12T20:35:34Z",
+      "task": "1.7"
+    },
+    {
+      "attempt": 1,
+      "elapsed_seconds": 256,
+      "outcome": "verified",
+      "run_id": "run-20260812T201522Z",
+      "stage_wave": "Stage 2",
+      "started_utc": "2026-08-12T20:51:50Z",
+      "stopped_utc": "2026-08-12T20:56:06Z",
+      "task": "2.3"
+    },
+    {
+      "attempt": 1,
+      "elapsed_seconds": 292,
+      "outcome": "verified",
+      "run_id": "run-20260812T201522Z",
+      "stage_wave": "Stage 2",
+      "started_utc": "2026-08-12T20:51:44Z",
+      "stopped_utc": "2026-08-12T20:56:36Z",
+      "task": "2.4"
+    },
+    {
+      "attempt": 1,
+      "elapsed_seconds": "unknown",
+      "outcome": "interrupted",
+      "run_id": "run-20260812T201522Z",
+      "stage_wave": "Stage 2",
+      "started_utc": "2026-08-12T20:49:51Z",
+      "stopped_utc": "unknown",
+      "task": "2.5"
+    },
+    {
+      "attempt": 1,
+      "elapsed_seconds": 124,
+      "outcome": "verified",
+      "run_id": "run-20260813T174410Z",
+      "stage_wave": "Stage 2 integration",
+      "started_utc": "2026-08-13T17:44:10Z",
+      "stopped_utc": "2026-08-13T17:46:14Z",
+      "task": "2.1"
+    },
+    {
+      "attempt": 1,
+      "elapsed_seconds": 124,
+      "outcome": "verified",
+      "run_id": "run-20260813T174410Z",
+      "stage_wave": "Stage 2 integration",
+      "started_utc": "2026-08-13T17:44:10Z",
+      "stopped_utc": "2026-08-13T17:46:14Z",
+      "task": "2.2"
+    },
+    {
+      "attempt": 2,
+      "elapsed_seconds": 124,
+      "outcome": "verified",
+      "run_id": "run-20260813T174410Z",
+      "stage_wave": "Stage 2 verification",
+      "started_utc": "2026-08-13T17:44:10Z",
+      "stopped_utc": "2026-08-13T17:46:14Z",
+      "task": "2.5"
+    },
+    {
+      "attempt": 1,
+      "elapsed_seconds": 279,
+      "outcome": "verified",
+      "run_id": "run-20260813T174410Z",
+      "stage_wave": "Stage 3 serial",
+      "started_utc": "2026-08-13T17:48:17Z",
+      "stopped_utc": "2026-08-13T17:52:56Z",
+      "task": "3.1"
+    },
+    {
+      "attempt": 1,
+      "elapsed_seconds": 113,
+      "outcome": "failed: Antigravity authentication unavailable",
+      "run_id": "run-20260813T174410Z",
+      "stage_wave": "Stage 3 serial",
+      "started_utc": "2026-08-13T17:54:15Z",
+      "stopped_utc": "2026-08-13T17:56:08Z",
+      "task": "3.2"
+    },
+    {
+      "attempt": 2,
+      "elapsed_seconds": 212,
+      "outcome": "verified",
+      "run_id": "run-20260813T174410Z",
+      "stage_wave": "Stage 3 serial",
+      "started_utc": "2026-08-13T17:56:08Z",
+      "stopped_utc": "2026-08-13T17:59:40Z",
+      "task": "3.2"
+    },
+    {
+      "attempt": 1,
+      "elapsed_seconds": 0,
+      "outcome": "verified",
+      "run_id": "run-20260813T174410Z",
+      "stage_wave": "Stage 4 checkpoint",
+      "started_utc": "2026-08-13T17:59:40Z",
+      "stopped_utc": "2026-08-13T17:59:40Z",
+      "task": "4.1"
+    },
+    {
+      "attempt": 1,
+      "elapsed_seconds": 249,
+      "outcome": "verified",
+      "run_id": "run-20260813T174410Z",
+      "stage_wave": "Stage 5 serial",
+      "started_utc": "2026-08-13T18:00:11Z",
+      "stopped_utc": "2026-08-13T18:04:20Z",
+      "task": "5.1"
+    },
+    {
+      "attempt": 1,
+      "elapsed_seconds": 0,
+      "outcome": "verified",
+      "run_id": "run-20260813T174410Z",
+      "stage_wave": "Stage 6 checkpoint",
+      "started_utc": "2026-08-13T18:04:20Z",
+      "stopped_utc": "2026-08-13T18:04:20Z",
+      "task": "6.1"
+    },
+    {
+      "attempt": 1,
+      "elapsed_seconds": 252,
+      "outcome": "verified",
+      "run_id": "run-20260813T174410Z",
+      "stage_wave": "Stage 7 serial",
+      "started_utc": "2026-08-13T18:05:11Z",
+      "stopped_utc": "2026-08-13T18:09:23Z",
+      "task": "7.1"
+    },
+    {
+      "attempt": 1,
+      "elapsed_seconds": 180,
+      "outcome": "verified",
+      "run_id": "run-20260813T174410Z",
+      "stage_wave": "Stage 8 final",
+      "started_utc": "2026-08-13T18:10:04Z",
+      "stopped_utc": "2026-08-13T18:13:04Z",
+      "task": "8.1"
+    }
+  ],
+  "unresolved": [
+    {
+      "id": "run-20260812T173015Z",
+      "kind": "run",
+      "reason": "interrupted"
+    },
+    {
+      "id": "run-20260812T201522Z",
+      "kind": "run",
+      "reason": "interrupted"
+    },
+    {
+      "id": "2.5#1",
+      "kind": "task_attempt",
+      "reason": "interrupted"
+    }
+  ]
+}

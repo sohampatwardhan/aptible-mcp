@@ -45,7 +45,7 @@ class AccountManager(ResourceManager[Account, str]):
         """
         Override list method to match test expectations
         """
-        response = self.api_client.get(self.resource_url)
+        response = await self.api_client.get(self.resource_url)
         if "_embedded" not in response:
             return []
         items = response["_embedded"][self.resource_name]
@@ -56,7 +56,7 @@ class AccountManager(ResourceManager[Account, str]):
         Override get_by_id to use direct URL lookup for account tests
         """
         try:
-            response = self.api_client.get(f"{self.resource_url}/{obj_id}")
+            response = await self.api_client.get(f"{self.resource_url}/{obj_id}")
             return self.resource_model.model_validate(response)
         except Exception:
             return await super().get_by_id(obj_id, with_params=False, **kwargs)
@@ -85,9 +85,29 @@ class AccountManager(ResourceManager[Account, str]):
             "handle": handle,
             "stack_id": stack.id,
             "type": account_type,
-            "organization_id": self.api_client.organization_id(),
+            "organization_id": await self.api_client.organization_id(),
         }
         return await super().create(create_data)
+
+    async def rename(self, account_id: int, new_handle: str) -> Account:
+        """
+        Rename an environment. A handle that's already taken elsewhere in
+        the organization surfaces as the API's own HTTPError, unhandled here,
+        exactly like existing handle-uniqueness behavior elsewhere.
+        """
+        response = await self.api_client.put(
+            f"{self.resource_url}/{account_id}", {"handle": new_handle}
+        )
+        return self.resource_model.model_validate(response)
+
+    async def get_ca_certificate(self, account_id: int) -> Optional[str]:
+        """
+        Return the environment's configured CA certificate body, or None if
+        none is configured. The write path for setting this is intentionally
+        not implemented here (unconfirmed against the real API).
+        """
+        response = await self.api_client.get(f"{self.resource_url}/{account_id}")
+        return response.get("ca_body")
 
     async def get_by_stack_id(self, stack_id: int) -> List[Account]:
         """

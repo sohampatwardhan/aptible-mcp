@@ -14,5 +14,13 @@ test:
     APTIBLE_AUTH_ROOT_URL="http://localhost:3001" \
     uv run python -m pytest -v -s tests/
 
+vendor-test:
+    uv run python -m pytest -q \
+      .agents/skills/spec-driven/tests/ \
+      .agents/skills/dependency-security-audit/tests/
+
+security-audit:
+    ./scripts/release-audit.sh
+
 typecheck:
     uv run mypy --show-traceback .

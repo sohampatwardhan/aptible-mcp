@@ -1,5 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, AsyncMock
+from requests.exceptions import HTTPError
 
 from models.account import Account, AccountManager
 from api_client import AptibleApiClient
@@ -326,7 +327,7 @@ class TestAccountManager:
 
         monkeypatch.setattr(account_manager, "stack_manager", mock_stack_manager)
 
-        mock_api_client.organization_id = MagicMock(return_value="org-123")
+        mock_api_client.organization_id = AsyncMock(return_value="org-123")
         mock_api_client.post.return_value = sample_account_data
 
         account = await account_manager.create(
@@ -364,7 +365,7 @@ class TestAccountManager:
 
         monkeypatch.setattr(account_manager, "stack_manager", mock_stack_manager)
 
-        mock_api_client.organization_id = MagicMock(return_value="org-123")
+        mock_api_client.organization_id = AsyncMock(return_value="org-123")
         mock_api_client.post.return_value = sample_account_data
 
         account = await account_manager.create(
@@ -418,3 +419,53 @@ class TestAccountManager:
             await account_manager.create({"handle": "test-account", "stack_id": 999})
 
         assert "Stack 999 not found" in str(excinfo.value)
+
+    @pytest.mark.asyncio
+    async def test_rename_success(
+        self, account_manager, mock_api_client, sample_account_data
+    ):
+        renamed_data = {**sample_account_data, "handle": "renamed-account"}
+        mock_api_client.put.return_value = renamed_data
+
+        account = await account_manager.rename(123, "renamed-account")
+
+        mock_api_client.put.assert_called_once_with(
+            "/accounts/123", {"handle": "renamed-account"}
+        )
+        assert isinstance(account, Account)
+        assert account.handle == "renamed-account"
+
+    @pytest.mark.asyncio
+    async def test_rename_duplicate_handle_propagates(
+        self, account_manager, mock_api_client
+    ):
+        mock_response = MagicMock()
+        mock_response.status_code = 409
+        mock_api_client.put.side_effect = HTTPError(response=mock_response)
+
+        with pytest.raises(HTTPError):
+            await account_manager.rename(123, "already-taken")
+
+    @pytest.mark.asyncio
+    async def test_get_ca_certificate_configured(
+        self, account_manager, mock_api_client, sample_account_data
+    ):
+        mock_api_client.get.return_value = {
+            **sample_account_data,
+            "ca_body": "-----BEGIN CERTIFICATE-----...",
+        }
+
+        ca_certificate = await account_manager.get_ca_certificate(123)
+
+        mock_api_client.get.assert_called_once_with("/accounts/123")
+        assert ca_certificate == "-----BEGIN CERTIFICATE-----..."
+
+    @pytest.mark.asyncio
+    async def test_get_ca_certificate_unconfigured(
+        self, account_manager, mock_api_client, sample_account_data
+    ):
+        mock_api_client.get.return_value = sample_account_data
+
+        ca_certificate = await account_manager.get_ca_certificate(123)
+
+        assert ca_certificate is None

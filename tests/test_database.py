@@ -1,5 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, AsyncMock
+from requests.exceptions import HTTPError
 
 from models.database import Database, DatabaseImage, DatabaseManager
 from api_client import AptibleApiClient
@@ -261,7 +262,7 @@ class TestDatabaseManager:
             sample_operation_response,
         ]
 
-        mock_api_client.wait_for_operation = MagicMock()
+        mock_api_client.wait_for_operation = AsyncMock()
 
         result = await database_manager.create(
             {"handle": handle, "account_id": account_id, "image_id": image_id}
@@ -379,3 +380,247 @@ class TestDatabaseManager:
             await database_manager.delete(0)
 
         assert "Database 0 not found" in str(excinfo.value)
+
+    @pytest.mark.asyncio
+    async def test_replicate_success(
+        self, database_manager, mock_api_client, sample_operation_response
+    ):
+        mock_api_client.post.return_value = sample_operation_response
+
+        result = await database_manager.replicate(
+            1, "test-db-replica", container_size=1024, disk_size=20
+        )
+
+        assert result is None
+        mock_api_client.post.assert_called_once_with(
+            "/databases/1/operations",
+            {
+                "type": "replicate",
+                "handle": "test-db-replica",
+                "container_size": 1024,
+                "disk_size": 20,
+            },
+        )
+        mock_api_client.wait_for_operation.assert_called_once_with("operation-123")
+
+    @pytest.mark.asyncio
+    async def test_replicate_operation_failure(
+        self, database_manager, mock_api_client, sample_operation_response
+    ):
+        mock_api_client.post.return_value = sample_operation_response
+        mock_api_client.wait_for_operation.side_effect = Exception(
+            "Operation operation-123 failed: replication failed"
+        )
+
+        with pytest.raises(Exception, match="replication failed"):
+            await database_manager.replicate(1, "test-db-replica")
+
+    @pytest.mark.asyncio
+    async def test_clone_success(
+        self, database_manager, mock_api_client, sample_operation_response
+    ):
+        mock_api_client.post.return_value = sample_operation_response
+
+        result = await database_manager.clone(1, "test-db-clone")
+
+        assert result is None
+        mock_api_client.post.assert_called_once_with(
+            "/databases/1/operations",
+            {"type": "clone", "handle": "test-db-clone"},
+        )
+        mock_api_client.wait_for_operation.assert_called_once_with("operation-123")
+
+    @pytest.mark.asyncio
+    async def test_clone_duplicate_handle_propagates(
+        self, database_manager, mock_api_client
+    ):
+        mock_response = MagicMock()
+        mock_response.status_code = 409
+        mock_api_client.post.side_effect = HTTPError(response=mock_response)
+
+        with pytest.raises(HTTPError):
+            await database_manager.clone(1, "already-taken")
+
+        mock_api_client.wait_for_operation.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_modify_iops_success(
+        self, database_manager, mock_api_client, sample_database_data
+    ):
+        mock_api_client.post.return_value = {"id": "operation-modify"}
+        mock_api_client.get.return_value = sample_database_data
+
+        result = await database_manager.modify_iops(
+            1, provisioned_iops=3000, ebs_volume_type="gp3"
+        )
+
+        assert isinstance(result, Database)
+        mock_api_client.post.assert_called_once_with(
+            "/databases/1/operations",
+            {
+                "type": "modify",
+                "provisioned_iops": 3000,
+                "ebs_volume_type": "gp3",
+            },
+        )
+        mock_api_client.wait_for_operation.assert_called_once_with("operation-modify")
+        mock_api_client.get.assert_called_once_with("/databases/1")
+
+    @pytest.mark.asyncio
+    async def test_modify_iops_operation_failure(
+        self, database_manager, mock_api_client
+    ):
+        mock_api_client.post.return_value = {"id": "operation-modify"}
+        mock_api_client.wait_for_operation.side_effect = Exception(
+            "Operation operation-modify failed: invalid IOPS"
+        )
+
+        with pytest.raises(Exception, match="invalid IOPS"):
+            await database_manager.modify_iops(1, provisioned_iops=3000)
+
+    @pytest.mark.asyncio
+    async def test_resize_success(
+        self, database_manager, mock_api_client, sample_database_data
+    ):
+        mock_api_client.post.return_value = {"id": "operation-resize"}
+        mock_api_client.get.return_value = sample_database_data
+
+        result = await database_manager.resize(
+            1, container_size=2048, disk_size=50, instance_profile="m5.large"
+        )
+
+        assert isinstance(result, Database)
+        mock_api_client.post.assert_called_once_with(
+            "/databases/1/operations",
+            {
+                "type": "restart",
+                "container_size": 2048,
+                "disk_size": 50,
+                "instance_profile": "m5.large",
+            },
+        )
+        mock_api_client.wait_for_operation.assert_called_once_with("operation-resize")
+        mock_api_client.get.assert_called_once_with("/databases/1")
+
+    @pytest.mark.asyncio
+    async def test_resize_operation_failure(self, database_manager, mock_api_client):
+        mock_api_client.post.return_value = {"id": "operation-resize"}
+        mock_api_client.wait_for_operation.side_effect = Exception(
+            "Operation operation-resize failed: insufficient capacity"
+        )
+
+        with pytest.raises(Exception, match="insufficient capacity"):
+            await database_manager.resize(1, disk_size=50)
+
+    @pytest.mark.asyncio
+    async def test_reload_success(
+        self, database_manager, mock_api_client, sample_database_data
+    ):
+        mock_api_client.post.return_value = {"id": "operation-reload"}
+        mock_api_client.get.return_value = sample_database_data
+
+        result = await database_manager.reload(1)
+
+        assert isinstance(result, Database)
+        mock_api_client.post.assert_called_once_with(
+            "/databases/1/operations", {"type": "reload"}
+        )
+        mock_api_client.wait_for_operation.assert_called_once_with("operation-reload")
+
+    @pytest.mark.asyncio
+    async def test_reload_not_found(self, database_manager):
+        database_manager._run_operation = AsyncMock(return_value=None)
+
+        with pytest.raises(Exception, match="Database 999 not found"):
+            await database_manager.reload(999)
+
+    @pytest.mark.asyncio
+    async def test_rename_success(
+        self, database_manager, mock_api_client, sample_database_data
+    ):
+        mock_api_client.put.return_value = {
+            **sample_database_data,
+            "handle": "renamed-db",
+        }
+
+        result = await database_manager.rename(1, "renamed-db")
+
+        assert isinstance(result, Database)
+        assert result.handle == "renamed-db"
+        mock_api_client.put.assert_called_once_with(
+            "/databases/1", {"handle": "renamed-db"}
+        )
+
+    @pytest.mark.asyncio
+    async def test_rename_duplicate_handle_propagates(
+        self, database_manager, mock_api_client
+    ):
+        mock_response = MagicMock()
+        mock_response.status_code = 409
+        mock_api_client.put.side_effect = HTTPError(response=mock_response)
+
+        with pytest.raises(HTTPError):
+            await database_manager.rename(1, "already-taken")
+
+    @pytest.mark.asyncio
+    async def test_restart_success(
+        self, database_manager, mock_api_client, sample_database_data
+    ):
+        mock_api_client.post.return_value = {"id": "operation-restart"}
+        mock_api_client.get.return_value = sample_database_data
+
+        result = await database_manager.restart(1)
+
+        assert isinstance(result, Database)
+        mock_api_client.post.assert_called_once_with(
+            "/databases/1/operations", {"type": "restart"}
+        )
+        mock_api_client.wait_for_operation.assert_called_once_with("operation-restart")
+
+    @pytest.mark.asyncio
+    async def test_restart_operation_failure(self, database_manager, mock_api_client):
+        mock_api_client.post.return_value = {"id": "operation-restart"}
+        mock_api_client.wait_for_operation.side_effect = Exception(
+            "Operation operation-restart failed: restart timeout"
+        )
+
+        with pytest.raises(Exception, match="restart timeout"):
+            await database_manager.restart(1)
+
+    @pytest.mark.asyncio
+    async def test_list_versions_for_type_uses_existing_images_fetch(
+        self,
+        database_manager,
+        mock_api_client,
+        sample_database_image_data,
+    ):
+        redis_image_data = {
+            **sample_database_image_data,
+            "id": 789,
+            "type": "redis",
+            "version": "7",
+            "description": "Redis 7",
+        }
+        mock_api_client.get.return_value = {
+            "_embedded": {
+                "database_images": [sample_database_image_data, redis_image_data]
+            }
+        }
+
+        result = await database_manager.list_versions_for_type("postgresql")
+
+        assert [image.version for image in result] == ["14"]
+        mock_api_client.get.assert_called_once_with("/database_images")
+
+    @pytest.mark.asyncio
+    async def test_list_versions_for_type_unknown_type(
+        self, database_manager, mock_api_client, sample_database_image_data
+    ):
+        mock_api_client.get.return_value = {
+            "_embedded": {"database_images": [sample_database_image_data]}
+        }
+
+        with pytest.raises(ValueError, match="No database type found named mysql"):
+            await database_manager.list_versions_for_type("mysql")
+
+        mock_api_client.get.assert_called_once_with("/database_images")

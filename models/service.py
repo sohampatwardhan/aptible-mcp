@@ -3,6 +3,13 @@ from pydantic import Field, computed_field
 
 from models.base import ResourceBase, ResourceManager
 
+_SETTINGS_FIELDS = (
+    "force_zero_downtime",
+    "naive_health_check",
+    "restart_free_scaling",
+    "stop_timeout",
+)
+
 
 class Service(ResourceBase):
     """
@@ -48,7 +55,7 @@ class ServiceManager(ResourceManager[Service, str]):
         """
         List all services for a specific app.
         """
-        response = self.api_client.get(
+        response = await self.api_client.get(
             f"/apps/{app_id}/services?per_page=5000&no_embed=true"
         )
         items = response["_embedded"][self.resource_name]
@@ -84,15 +91,44 @@ class ServiceManager(ResourceManager[Service, str]):
         if container_memory_limit_mb is not None:
             operation_data["container_size"] = container_memory_limit_mb
 
-        response = self.api_client.post(
+        response = await self.api_client.post(
             f"/services/{service_id}/operations", operation_data
         )
-        self.api_client.wait_for_operation(response["id"])
+        await self.api_client.wait_for_operation(response["id"])
 
         refreshed_service = await self.get_by_id(service_id)
         if not refreshed_service:
             raise Exception(f"Service {service_id} not found")
         return refreshed_service
+
+    async def get_settings(self, service_id: int) -> dict[str, Any]:
+        """
+        Return whichever of force_zero_downtime, naive_health_check,
+        restart_free_scaling, stop_timeout are present on the current Service
+        resource. These aren't declared Service fields (the API may omit
+        them entirely rather than returning null), so they're read from the
+        model's extra-field passthrough rather than typed attributes.
+        """
+        service = await self.get_by_id(service_id)
+        if not service:
+            raise Exception(f"Service {service_id} not found")
+
+        extra = service.model_extra or {}
+        return {field: extra[field] for field in _SETTINGS_FIELDS if field in extra}
+
+    async def update_settings(self, service_id: int, **settings: Any) -> Service:
+        """
+        Update one or more service settings. The --simple-health-check CLI
+        flag corresponds to the naive_health_check field name. Every key is
+        validated against the four-name allow-list before any HTTP call, so
+        a typo never reaches the API as a silently-ignored extra field.
+        """
+        for key in settings:
+            if key not in _SETTINGS_FIELDS:
+                raise ValueError(f"Unsupported service setting: {key}")
+
+        response = await self.api_client.put(f"/services/{service_id}", settings)
+        return self.resource_model.model_validate(response)
 
     async def delete(self, service_id: int) -> None:
         """
@@ -103,7 +139,7 @@ class ServiceManager(ResourceManager[Service, str]):
             raise Exception(f"No service found with id {service_id}")
 
         operation_data = {"type": "deprovision"}
-        response = self.api_client.post(
+        response = await self.api_client.post(
             f"/services/{service_id}/operations", operation_data
         )
-        self.api_client.wait_for_operation(response["id"])
+        await self.api_client.wait_for_operation(response["id"])

@@ -264,6 +264,7 @@ class TestAppManager:
         """
 
         mock_api_client.post.return_value = sample_app_data
+        mock_api_client.get.return_value = sample_app_data
 
         create_data = {
             "handle": "test-app",
@@ -368,7 +369,7 @@ class TestAppManager:
         mock_api_client.wait_for_operation.assert_called_once_with("op-123")
 
     @pytest.mark.asyncio
-    async def test_deploy(self, app_manager, mock_api_client):
+    async def test_deploy(self, app_manager, mock_api_client, sample_app_data):
         """
         Test deploy method sends correct operation data and waits for operation.
         """
@@ -377,14 +378,201 @@ class TestAppManager:
 
         operation_response = {"id": "op-456"}
         mock_api_client.post.return_value = operation_response
+        mock_api_client.get.return_value = sample_app_data
 
-        await app_manager.deploy(app_id)
+        result = await app_manager.deploy(app_id)
 
+        assert isinstance(result, App)
+        assert result.id == 123
         mock_api_client.post.assert_called_once_with(
             "/apps/123/operations", {"type": "deploy"}
         )
 
         mock_api_client.wait_for_operation.assert_called_once_with("op-456")
+
+    @pytest.mark.asyncio
+    async def test_deploy_with_docker_image(
+        self, app_manager, mock_api_client, sample_app_data
+    ):
+        """
+        Test deploy method with docker_image includes settings in operation data.
+        """
+        app_id = 123
+        mock_api_client.post.return_value = {"id": "op-456"}
+        mock_api_client.get.return_value = sample_app_data
+
+        result = await app_manager.deploy(app_id, docker_image="custom-image:v1")
+
+        assert isinstance(result, App)
+        mock_api_client.post.assert_called_once_with(
+            "/apps/123/operations",
+            {
+                "type": "deploy",
+                "settings": {"APTIBLE_DOCKER_IMAGE": "custom-image:v1"},
+            },
+        )
+        mock_api_client.wait_for_operation.assert_called_once_with("op-456")
+
+    @pytest.mark.asyncio
+    async def test_deploy_with_git_ref(
+        self, app_manager, mock_api_client, sample_app_data
+    ):
+        """
+        Test deploy method with git_ref includes git_ref in operation data.
+        """
+        app_id = 123
+        mock_api_client.post.return_value = {"id": "op-456"}
+        mock_api_client.get.return_value = sample_app_data
+
+        result = await app_manager.deploy(app_id, git_ref="main")
+
+        assert isinstance(result, App)
+        mock_api_client.post.assert_called_once_with(
+            "/apps/123/operations",
+            {
+                "type": "deploy",
+                "git_ref": "main",
+            },
+        )
+        mock_api_client.wait_for_operation.assert_called_once_with("op-456")
+
+    @pytest.mark.asyncio
+    async def test_rename_success(self, app_manager, mock_api_client, sample_app_data):
+        """
+        Test rename method sends PUT request and returns updated App.
+        """
+        app_id = 123
+        updated_data = {**sample_app_data, "handle": "new-app-handle"}
+        mock_api_client.put.return_value = updated_data
+
+        result = await app_manager.rename(app_id, "new-app-handle")
+
+        assert isinstance(result, App)
+        assert result.handle == "new-app-handle"
+        mock_api_client.put.assert_called_once_with(
+            "/apps/123", {"handle": "new-app-handle"}
+        )
+
+    @pytest.mark.asyncio
+    async def test_rebuild_success(self, app_manager, mock_api_client, sample_app_data):
+        """
+        Test rebuild method sends rebuild operation and returns App.
+        """
+        app_id = 123
+        mock_api_client.post.return_value = {"id": "op-reb-1"}
+        mock_api_client.get.return_value = sample_app_data
+
+        result = await app_manager.rebuild(app_id)
+
+        assert isinstance(result, App)
+        mock_api_client.post.assert_called_once_with(
+            "/apps/123/operations", {"type": "rebuild"}
+        )
+        mock_api_client.wait_for_operation.assert_called_once_with("op-reb-1")
+
+    @pytest.mark.asyncio
+    async def test_rebuild_failure(self, app_manager, mock_api_client):
+        """
+        Test rebuild method propagates failure exception from wait_for_operation.
+        """
+        app_id = 123
+        mock_api_client.post.return_value = {"id": "op-reb-2"}
+        mock_api_client.wait_for_operation.side_effect = Exception(
+            "Operation op-reb-2 failed: Build error"
+        )
+
+        with pytest.raises(Exception, match="Build error"):
+            await app_manager.rebuild(app_id)
+
+    @pytest.mark.asyncio
+    async def test_restart_success(self, app_manager, mock_api_client, sample_app_data):
+        """
+        Test restart method sends restart operation and returns App.
+        """
+        app_id = 123
+        mock_api_client.post.return_value = {"id": "op-rst-1"}
+        mock_api_client.get.return_value = sample_app_data
+
+        result = await app_manager.restart(app_id)
+
+        assert isinstance(result, App)
+        mock_api_client.post.assert_called_once_with(
+            "/apps/123/operations", {"type": "restart"}
+        )
+        mock_api_client.wait_for_operation.assert_called_once_with("op-rst-1")
+
+    @pytest.mark.asyncio
+    async def test_restart_failure(self, app_manager, mock_api_client):
+        """
+        Test restart method propagates failure exception from wait_for_operation.
+        """
+        app_id = 123
+        mock_api_client.post.return_value = {"id": "op-rst-2"}
+        mock_api_client.wait_for_operation.side_effect = Exception(
+            "Operation op-rst-2 failed: Restart timeout"
+        )
+
+        with pytest.raises(Exception, match="Restart timeout"):
+            await app_manager.restart(app_id)
+
+    @pytest.mark.asyncio
+    async def test_run_command_success(self, app_manager, mock_api_client, monkeypatch):
+        """
+        Test run_command starts execute operation, waits, and fetches logs.
+        """
+        app_id = 123
+        mock_api_client.post.return_value = {"id": 999}
+        mock_api_client.api_url = "http://localhost:3000"
+        mock_api_client._get_headers.return_value = {}
+
+        mock_logs = "bundle exec rake db:migrate output"
+
+        from models.operation import OperationManager
+
+        async def mock_logs_fn(self_op, op_id):
+            assert op_id == 999
+            return mock_logs
+
+        monkeypatch.setattr(OperationManager, "logs", mock_logs_fn)
+
+        result = await app_manager.run_command(app_id, "bundle exec rake db:migrate")
+
+        assert result == mock_logs
+        mock_api_client.post.assert_called_once_with(
+            "/apps/123/operations",
+            {
+                "type": "execute",
+                "command": "bundle exec rake db:migrate",
+                "interactive": False,
+            },
+        )
+        mock_api_client.wait_for_operation.assert_called_once_with(999)
+
+    @pytest.mark.asyncio
+    async def test_run_command_failure_with_output(
+        self, app_manager, mock_api_client, monkeypatch
+    ):
+        """
+        Test run_command includes captured output on operation failure.
+        """
+        app_id = 123
+        mock_api_client.post.return_value = {"id": 999}
+        mock_api_client.wait_for_operation.side_effect = Exception(
+            "Operation 999 failed: Command exited with status 1"
+        )
+
+        from models.operation import OperationManager
+
+        async def mock_logs_fn(self_op, op_id):
+            return "Error: table users does not exist"
+
+        monkeypatch.setattr(OperationManager, "logs", mock_logs_fn)
+
+        with pytest.raises(Exception, match="Command exited with status 1") as exc_info:
+            await app_manager.run_command(app_id, "bundle exec rake db:migrate")
+
+        assert "Output:" in str(exc_info.value)
+        assert "Error: table users does not exist" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_delete_by_id(self, app_manager, mock_api_client, sample_app_data):

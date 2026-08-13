@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "agents": {
+    "claude": {
+      "binary": "claude",
+      "unattended_flags": ["--permission-mode", "bypassPermissions"],
+      "model_flag": "--model",
+      "effort_flag": "--effort",
+      "effort_map": {"extra_high": "xhigh"},
+      "provider_safety": {
+        "real_time_cyber_safeguards": true,
+        "defensive_use_verified": false,
+        "allowed_safety_classifications": ["none", "defensive"]
+      },
+      "role_overrides": {
+        "implementer": {
+          "unattended_flags": ["--permission-mode", "bypassPermissions"]
+        },
+        "reviewer": {
+          "unattended_flags": ["--permission-mode", "plan"]
+        },
+        "explorer": {
+          "unattended_flags": ["--permission-mode", "plan"]
+        }
+      }
+    },
+    "codex": {
+      "binary": "codex",
+      "unattended_flags": ["--ask-for-approval", "never", "--sandbox", "workspace-write"],
+      "model_flag": "--model",
+      "effort_flag": "-c model_reasoning_effort=",
+      "effort_map": {"extra_high": "xhigh"},
+      "role_overrides": {
+        "implementer": {
+          "unattended_flags": ["--ask-for-approval", "never", "--sandbox", "workspace-write"]
+        },
+        "reviewer": {
+          "unattended_flags": ["--sandbox", "read-only", "--ask-for-approval", "never"]
+        },
+        "explorer": {
+          "unattended_flags": ["--sandbox", "read-only", "--ask-for-approval", "never"]
+        }
+      }
+    },
+    "agy": {
+      "binary": "agy",
+      "unattended_flags": ["--dangerously-skip-permissions"],
+      "model_flag": "--model",
+      "effort_flag": "--effort",
+      "effort_map": {"extra_high": "high"},
+      "role_overrides": {
+        "implementer": {
+          "unattended_flags": ["--dangerously-skip-permissions"]
+        },
+        "reviewer": {
+          "unattended_flags": ["--mode", "plan", "--sandbox"]
+        },
+        "explorer": {
+          "unattended_flags": ["--mode", "plan", "--sandbox"]
+        }
+      }
+    },
+    "cursor": {
+      "binary": "agent",
+      "unattended_flags": ["--print", "--force", "--trust"],
+      "model_flag": "--model",
+      "effort_flag": "",
+      "role_overrides": {
+        "implementer": {
+          "unattended_flags": ["--print", "--force", "--trust"]
+        },
+        "reviewer": {
+          "unattended_flags": ["--print", "--mode", "ask", "--trust"]
+        }
+      }
+    },
+    "opencode": {
+      "binary": "opencode",
+      "unattended_flags": ["run", "--auto"],
+      "model_flag": "--model",
+      "effort_flag": "",
+      "role_overrides": {
+        "implementer": {
+          "unattended_flags": ["run", "--auto"]
+        },
+        "reviewer": {
+          "unattended_flags": ["run", "--auto", "--agent", "plan"]
+        }
+      }
+    }
+  }
+}
