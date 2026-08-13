@@ -1,5 +1,7 @@
 import json
+import os
 import subprocess
+import sys
 import tomllib
 from pathlib import Path
 
@@ -55,7 +57,7 @@ def test_mcpb_runtime_files_are_not_ignored():
         ".agents/",
         ".specs/",
         ".security/",
-        ".venv/",
+        ".venv*/",
         "tests/",
         ".env",
     ):
@@ -70,7 +72,21 @@ def test_setup_script_is_valid_posix_shell_and_avoids_remote_installers():
     assert "uv sync" in contents
     assert "--locked" in contents
     assert "--no-dev" in contents
+    assert "missing package RECORD metadata" in contents
+    assert 'mv "$PROJECT_VENV" "$VENV_BACKUP"' in contents
     assert "curl " not in contents
     assert "wget " not in contents
     assert "sudo " not in contents
     assert "eval " not in contents
+
+
+def test_server_import_has_no_compatibility_warnings():
+    environment = os.environ.copy()
+    environment["PYTHONWARNINGS"] = "error"
+
+    subprocess.run(
+        [sys.executable, "-c", "import main"],
+        check=True,
+        cwd=ROOT,
+        env=environment,
+    )

@@ -16,6 +16,20 @@ if [ ! -f "$PROJECT_DIR/pyproject.toml" ] || [ ! -f "$PROJECT_DIR/uv.lock" ]; th
   exit 1
 fi
 
+PROJECT_VENV="$PROJECT_DIR/.venv"
+if [ -d "$PROJECT_VENV" ]; then
+  MISSING_RECORD=$(find "$PROJECT_VENV" -type d -name '*.dist-info' ! -exec test -f '{}/RECORD' ';' -print -quit)
+  if [ -n "$MISSING_RECORD" ]; then
+    VENV_BACKUP="$PROJECT_DIR/.venv.corrupt.$(date '+%Y%m%d%H%M%S')"
+    if [ -e "$VENV_BACKUP" ]; then
+      VENV_BACKUP="$VENV_BACKUP.$$"
+    fi
+    printf '%s\n' "Detected an incomplete virtual environment (missing package RECORD metadata)."
+    printf 'Moving it to %s so uv can create a clean environment...\n' "$VENV_BACKUP"
+    mv "$PROJECT_VENV" "$VENV_BACKUP"
+  fi
+fi
+
 printf '%s\n' "Synchronizing Aptible MCP dependencies from the locked environment..."
 uv sync --project "$PROJECT_DIR" --locked --no-dev
 
