@@ -221,6 +221,38 @@ async def test_list_accounts(mock_account_manager):
 
 
 @pytest.mark.asyncio
+async def test_list_accounts_omits_unknown_embedded_credentials(mock_account_manager):
+    account = Account.model_validate(
+        {
+            "id": 1,
+            "handle": "thrive-prod",
+            "created_at": "2023-01-01T12:00:00Z",
+            "updated_at": "2023-01-01T12:00:00Z",
+            "_links": {"stack": {"href": "https://api.aptible.com/stacks/123"}},
+            "url": "https://user:password@logs.example.com",
+            "authToken": "unexpected-token",
+            "_embedded": {
+                "log_drains": [{"password": "embedded-password"}],
+                "certificates": [{"private_key": "embedded-private-key"}],
+            },
+        }
+    )
+    mock_account_manager.list = AsyncMock(return_value=[account])
+
+    result = await listAccounts()
+
+    assert result == [
+        {
+            "id": 1,
+            "handle": "thrive-prod",
+            "created_at": "2023-01-01T12:00:00Z",
+            "updated_at": "2023-01-01T12:00:00Z",
+            "stack_id": 123,
+        }
+    ]
+
+
+@pytest.mark.asyncio
 async def test_get_account_success(mock_account_manager):
     """
     Test get_account successfully retrieves an account by handle.
@@ -1271,6 +1303,8 @@ async def test_create_log_drain(mock_log_drain_manager, mock_account_manager):
         created_at="2023-01-01T12:00:00Z",
         updated_at="2023-01-01T12:00:00Z",
         links={"account": {"href": "https://api.aptible.com/accounts/123"}},
+        url="https://alice:log-password@logs.example.com/ingest",
+        authToken="echoed-auth-token",
     )
     mock_log_drain_manager.create = AsyncMock(return_value=mock_drain)
 
@@ -1284,6 +1318,8 @@ async def test_create_log_drain(mock_log_drain_manager, mock_account_manager):
     assert result["id"] == 1
     assert result["handle"] == "my-drain"
     assert result["drain_type"] == "https_post"
+    assert "url" not in result
+    assert "authToken" not in result
 
 
 @pytest.mark.asyncio
@@ -1382,6 +1418,7 @@ async def test_create_metric_drain(mock_metric_drain_manager, mock_account_manag
     assert result["id"] == 1
     assert result["handle"] == "my-metric-drain"
     assert result["drain_type"] == "datadog"
+    assert result["drain_configuration"] == "[REDACTED]"
 
 
 @pytest.mark.asyncio

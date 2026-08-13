@@ -41,16 +41,6 @@ class AccountManager(ResourceManager[Account, str]):
     resource_url = "/accounts"
     stack_manager: Optional[StackManager] = None
 
-    async def list(self, **kwargs) -> List[Account]:
-        """
-        Override list method to match test expectations
-        """
-        response = await self.api_client.get(self.resource_url)
-        if "_embedded" not in response:
-            return []
-        items = response["_embedded"][self.resource_name]
-        return [self.resource_model.model_validate(item) for item in items]
-
     async def get_by_id(self, obj_id: int, **kwargs) -> Optional[Account]:
         """
         Override get_by_id to use direct URL lookup for account tests

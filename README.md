@@ -4,7 +4,7 @@ An MCP server for managing [Aptible](https://www.aptible.com) resources through 
 Protocol.
 
 > [!IMPORTANT]
-> **Current release: [v0.2.1](https://github.com/sohampatwardhan/aptible-mcp/releases/tag/v0.2.1).**
+> **Current release: [v0.2.2](https://github.com/sohampatwardhan/aptible-mcp/releases/tag/v0.2.2).**
 > The server implements feature-complete Deploy API parity across the supported resource groups
 > below. Mutating tools can create, resize, restart, or delete billable infrastructure, so review
 > tool arguments and the target environment before approving a call.
@@ -22,6 +22,7 @@ polling, and same-origin validation for authenticated Aptible API links.
 - Non-blocking HTTP, pagination, operation polling, and operation-log retrieval
 - Account-scoped reconciliation for database clone, replication, and restore operations
 - Same-origin credential protection and trusted-file handling for certificate private keys
+- Allowlisted resource responses that omit embedded API objects and redact secret-bearing fields
 - Locked, reproducible source installation and a packaged MCPB desktop extension
 - Release dependency auditing with CycloneDX, OSV, CISA KEV, GitHub, NVD, and `pip-audit`
 
@@ -69,8 +70,8 @@ polling, and same-origin validation for authenticated Aptible API links.
 
 ### Desktop extension (`.mcpb`)
 
-Download `aptible-mcp-0.2.1.mcpb` from the
-[v0.2.1 GitHub release](https://github.com/sohampatwardhan/aptible-mcp/releases/tag/v0.2.1), then open it with an MCPB-compatible
+Download `aptible-mcp-0.2.2.mcpb` from the
+[v0.2.2 GitHub release](https://github.com/sohampatwardhan/aptible-mcp/releases/tag/v0.2.2), then open it with an MCPB-compatible
 desktop client. During installation, you can provide an Aptible access token. If you leave the
 token blank, the server uses the credentials from an existing Aptible CLI login at
 `~/.aptible/tokens.json`.
@@ -150,7 +151,7 @@ Install the official MCPB CLI, validate the 0.4 manifest, and pack the repositor
 ```bash
 npm install -g @anthropic-ai/mcpb
 mcpb validate .
-mcpb pack . aptible-mcp-0.2.1.mcpb
+mcpb pack . aptible-mcp-0.2.2.mcpb
 ```
 
 `.mcpbignore` excludes tests, local environments, caches, agent/spec artifacts, and secrets from

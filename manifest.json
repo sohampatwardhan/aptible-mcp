@@ -2,7 +2,7 @@
   "manifest_version": "0.4",
   "name": "aptible-mcp",
   "display_name": "Aptible MCP",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Manage Aptible resources through the Model Context Protocol.",
   "long_description": "A local MCP server for inspecting and operating Aptible environments, apps, databases, backups, endpoints, drains, certificates, services, and operations.",
   "author": {
